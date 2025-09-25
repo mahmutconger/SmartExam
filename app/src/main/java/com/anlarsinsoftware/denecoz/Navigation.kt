@@ -13,7 +13,6 @@ sealed class Screen(val route: String) {
     object RegisterScreen : Screen("register_screen")
     object HomeScreen : Screen("home_screen")
 }
-
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -23,13 +22,13 @@ fun AppNavigation() {
         startDestination = Screen.LoginScreen.route
     ) {
         composable(route = Screen.LoginScreen.route) {
-            LoginScreen()
+            LoginScreen(navController = navController)
         }
         composable(route = Screen.RegisterScreen.route) {
-            RegisterScreen()
+            RegisterScreen(navController = navController)
         }
         composable(route = Screen.HomeScreen.route) {
-            HomeScreen()
+            HomeScreen(navController = navController)
         }
     }
 }

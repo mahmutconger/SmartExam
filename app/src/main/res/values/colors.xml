@@ -7,4 +7,19 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- Ana Renk Paleti -->
+    <color name="primaryBlue">#0000FF</color>
+    <color name="secondaryBlue">#1976D2</color>
+    <color name="linkBlue">#2962FF</color>
+
+    <color name="dividerGray">#D3D3D3</color>
+    <color name="textGray">#808080</color>
+
+    <!-- Input Alanları -->
+    <color name="fieldBorder">#CCCCCC</color>
+    <color name="fieldBackground">#FFFFFF</color>
+
+    <!-- Hata & Uyarı -->
+    <color name="errorRed">#FF3B30</color>
+    <color name="successGreen">#4CAF50</color>
 </resources>

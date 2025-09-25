@@ -1,3 +1,21 @@
 <resources>
-    <string name="app_name">DeneCoz</string>
+    <string name="app_name" translatable="false">SmartExam</string>
+
+    <!-- Login -->
+    <string name="login_title">SmartExam\'a Giriş Yap</string>
+    <string name="continue_google">Google ile devam et</string>
+    <string name="continue_phone">Telefon ile devam et</string>
+    <string name="or">Ya da</string>
+    <string name="username_or_email">Kullanıcı adı veya E-posta</string>
+    <string name="password">Şifre</string>
+    <string name="forgot_password">Şifreni mi unuttun?</string>
+    <string name="continuee">Giriş Yap</string>
+    <string name="no_account">Hesabınız yok mu?</string>
+    <string name="sign_up">Kayıt Olun!</string>
+
+    <!-- Register -->
+    <string name="register_title">SmartExam\'a Kayıt Ol</string>
+    <string name="register_button">Kayıt Ol</string>
+    <string name="have_account">Zaten hesabınız var mı?</string>
+    <string name="login_here">Giriş Yapın!</string>
 </resources>

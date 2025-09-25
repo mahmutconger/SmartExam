@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.anlarsinsoftware.denecoz" />
+                  <option name="mobileSdkAppId" value="1:767844546896:android:4362191ed6efbe73c3d455" />
+                  <option name="projectId" value="smartexam-12c1c" />
+                  <option name="projectNumber" value="767844546896" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

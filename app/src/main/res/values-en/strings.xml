@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Login -->
+    <string name="login_title">Login to SmartExam</string>
+    <string name="continue_google">Continue with Google</string>
+    <string name="continue_phone">Continue with Phone</string>
+    <string name="or">Or</string>
+    <string name="username_or_email">Username or Email</string>
+    <string name="password">Password</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="continuee">Login</string>
+    <string name="no_account">Don\'t have an account?</string>
+    <string name="sign_up">Sign Up!</string>
+
+    <!-- Register -->
+    <string name="register_title">Register to SmartExam</string>
+    <string name="register_button">Sign Up</string>
+    <string name="have_account">Already have an account?</string>
+    <string name="login_here">Login here!</string>
+</resources>

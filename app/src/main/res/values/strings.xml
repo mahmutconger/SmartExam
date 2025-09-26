@@ -12,10 +12,26 @@
     <string name="continuee">Giriş Yap</string>
     <string name="no_account">Hesabınız yok mu?</string>
     <string name="sign_up">Kayıt Olun!</string>
+    <string name="student">Öğrenci</string>
+    <string name="publisher">Yayın Evi</string>
 
     <!-- Register -->
     <string name="register_title">SmartExam\'a Kayıt Ol</string>
     <string name="register_button">Kayıt Ol</string>
     <string name="have_account">Zaten hesabınız var mı?</string>
     <string name="login_here">Giriş Yapın!</string>
+
+    <!-- HomeScreen -->
+    <string name="welcome_greeting">Hoş geldin %1$s!</string>
+    <string name="search_placeholder">Denemelerde Ara</string>
+    <string name="discover_publishers">Yayınevlerini keşfedin!</string>
+    <string name="popular">Popüler</string>
+    <string name="see_all">Tümünü Gör</string>
+    <string name="control_it">Kontrol Et!</string>
+
+    <!-- Bottom Nav -->
+    <string name="bottom_home">Ana sayfa</string>
+    <string name="bottom_explore">Keşfet</string>
+    <string name="bottom_settings">Ayarlar</string>
+    <string name="bottom_profile">Profil</string>
 </resources>

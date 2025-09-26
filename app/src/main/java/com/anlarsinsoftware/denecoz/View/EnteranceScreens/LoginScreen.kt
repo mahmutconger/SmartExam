@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.anlarsinsoftware.denecoz.Model.UserRole
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.ViewModel.EnteranceViewModels.LoginViewModel
@@ -17,6 +18,7 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf(UserRole.STUDENT) }
     val context = LocalContext.current
 
     val loginState by viewModel.loginState.collectAsState()
@@ -34,10 +36,15 @@ fun LoginScreen(
             navController.navigate(Screen.RegisterScreen.route)
         },
         onContinueClick = {
-            viewModel.loginUser(email, password)
+            selectedRole?.let { role ->
+                viewModel.loginUser(email, password, role)
+            } ?: Toast.makeText(context, "Lütfen bir rol seçin.", Toast.LENGTH_SHORT).show()
         },
         showForgotPassword = true,
-        onForgotPasswordClick = { /* TODO: Şifremi Unuttum mantığı eklenecek */ }
+        onForgotPasswordClick = { /* TODO: Şifremi Unuttum mantığı eklenecek */ },
+        userRole = selectedRole,
+        onRoleChange = { selectedRole = it },
+        showRoleSelection = true
     )
 
     LaunchedEffect(loginState) {

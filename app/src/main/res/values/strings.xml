@@ -34,4 +34,57 @@
     <string name="bottom_explore">Keşfet</string>
     <string name="bottom_settings">Ayarlar</string>
     <string name="bottom_profile">Profil</string>
+
+    <!-- Ekranlar / Genel -->
+    <string name="title" translatable="false">Limit Yayınları</string>
+    <string name="publishedExams">Yayındaki Denemeler</string>
+    <string name="edit">Düzenle</string>
+
+    <!-- Genel Bilgiler Ekranı -->
+    <string name="generalTitle">Genel Bilgileri Giriniz</string>
+    <string name="examNamePlaceholder">Deneme Adını Giriniz</string>
+    <string name="pressDatePlaceholder">Basım Tarihi Belirle</string>
+    <string name="bookletTypePlaceholder">Kitapçık Türü</string>
+    <string name="examTypePlaceholder">Deneme Türü</string>
+    <string name="confirmContinue">Onayla ve Devam Et!</string>
+
+    <!-- Cevap Anahtarı Ekranı -->
+    <string name="answer_key_title">İçerik ve Cevap Anahtarı</string>
+    <string name="approve_continue">Onayla ve Devam Et!</string>
+
+    <string name="confirm_continue">Onayla ve Devam Et!</string>
+
+    <!-- Sayfa başlıkları -->
+    <string name="title_create_answer_key">Cevap Anahtarı Oluştur</string>
+    <string name="title_topic_distribution">Konu Dağılımını Belirle</string>
+
+    <!-- Subject isimleri (örnek) -->
+    <string name="subject_turkish">Türkçe</string>
+    <string name="subject_social">Sosyal Bilgiler</string>
+    <string name="subject_math">Matematik</string>
+    <string name="subject_science">Fen Bilimleri</string>
+
+    <!-- Question label -->
+    <string name="question_label">Soru %1$d</string>
+
+    <!-- Topic selection -->
+    <string name="select_topic_placeholder">Konu Seçiniz...</string>
+
+    <!-- Tab başlıkları (varsa başka yerde kullan) -->
+    <string name="tab_answer_key">Cevap Anahtarı</string>
+    <string name="tab_topics">Konular</string>
+
+    <!-- Upload / preview -->
+    <string name="no_preview_yet">Henüz önizleme yok</string>
+    <string name="preview_available">Önizleme hazır</string>
+    <string name="change">Değiştir</string>
+
+    <!-- Action labels -->
+    <string name="upload_excel">Excel Şablonu Yükle</string>
+    <string name="upload_pdf">PDF Yükle</string>
+    <string name="create_manual">Manuel Oluştur!</string>
+
+
+    <!-- Arama vs (ek) -->
+    <string name="search">Denemelerde Ara</string>
 </resources>

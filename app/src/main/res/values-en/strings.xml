@@ -29,4 +29,50 @@
     <string name="bottom_explore">Explore</string>
     <string name="bottom_settings">Settings</string>
     <string name="bottom_profile">Profile</string>
+    <string name="publishedExams">Available Exams</string>
+    <string name="edit">Edit</string>
+    <string name="generalTitle">Enter general info</string>
+    <string name="examNamePlaceholder">Enter exam name</string>
+    <string name="pressDatePlaceholder">Select press date</string>
+    <string name="bookletTypePlaceholder">Booklet type</string>
+    <string name="examTypePlaceholder">Exam type</string>
+    <string name="confirmContinue">Confirm and Continue</string>
+    <string name="search">Search in Exams</string>
+
+    <string name="answer_key_title">Content and Answer Key</string>
+    <string name="approve_continue">Confirm and Continue!</string>
+
+    <!-- General -->
+    <string name="confirm_continue">Confirm and Continue!</string>
+
+    <!-- Page titles -->
+    <string name="title_create_answer_key">Create Answer Key</string>
+    <string name="title_topic_distribution">Define Topic Distribution</string>
+
+    <!-- Subject names (example) -->
+    <string name="subject_turkish">Turkish</string>
+    <string name="subject_social">Social Studies</string>
+    <string name="subject_math">Mathematics</string>
+    <string name="subject_science">Science</string>
+
+    <!-- Question label -->
+    <string name="question_label">Question %1$d</string>
+
+    <!-- Topic selection -->
+    <string name="select_topic_placeholder">Select topic...</string>
+
+    <!-- Tab labels -->
+    <string name="tab_answer_key">Answer Key</string>
+    <string name="tab_topics">Topics</string>
+
+    <!-- Upload / preview -->
+    <string name="no_preview_yet">No preview yet</string>
+    <string name="preview_available">Preview available</string>
+    <string name="change">Change</string>
+
+    <!-- Action labels -->
+    <string name="upload_excel">Upload Excel Template</string>
+    <string name="upload_pdf">Upload PDF</string>
+    <string name="create_manual">Create Manually!</string>
+
 </resources>

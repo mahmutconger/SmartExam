@@ -23,6 +23,8 @@
     <color name="errorRed">#FF3B30</color>
     <color name="successGreen">#4CAF50</color>
 
+    <color name="primaryPurple">#6A4CFF</color>
+    <color name="mutedCard">#F7F7FF</color>
     <color name="mutedText">#8A8A8A</color>
     <color name="cardBackground">#FFFFFF</color>
     <color name="screenBackground">#FBF9FF</color>  <!-- hafif mor tonlu arkaplan -->

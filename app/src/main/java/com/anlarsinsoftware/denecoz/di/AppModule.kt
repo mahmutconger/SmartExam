@@ -3,6 +3,8 @@
 package com.anlarsinsoftware.denecoz.di
 
 import com.anlarsinsoftware.denecoz.Repository.AuthRepository
+import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
+import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepositoryImpl
 import com.anlarsinsoftware.denecoz.data.repository.AuthRepositoryImpl
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,4 +37,8 @@ object AppModule {
     ): AuthRepository {
         return AuthRepositoryImpl(auth, firestore)
     }
+
+    @Provides
+    @Singleton
+    fun provideExamRepository(impl: ExamRepositoryImpl): ExamRepository = impl
 }

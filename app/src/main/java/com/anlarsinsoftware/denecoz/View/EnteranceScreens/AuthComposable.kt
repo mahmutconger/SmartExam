@@ -44,7 +44,8 @@ fun AuthScreen(
     onForgotPasswordClick: () -> Unit = {},
     showRoleSelection: Boolean,
     userRole: UserRole?,
-    onRoleChange: (UserRole) -> Unit = {}
+    onRoleChange: (UserRole) -> Unit = {},
+    isButtonEnabled: Boolean = true
 ) {
     val primaryBackgroundColor = colorResource(R.color.screenBackground)
     val cardBackgroundColor = colorResource(R.color.secondaryBlue)
@@ -195,6 +196,7 @@ fun AuthScreen(
 
             Button(
                 onClick = onContinueClick,
+                enabled = isButtonEnabled,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = primaryButtonColor),
                 shape = RoundedCornerShape(50)

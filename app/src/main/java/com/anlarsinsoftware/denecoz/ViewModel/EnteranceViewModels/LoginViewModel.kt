@@ -10,18 +10,32 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+sealed class AuthUiState {
+    object Idle : AuthUiState()
+    object Loading : AuthUiState()
+    object Success : AuthUiState()
+    data class Error(val message: String) : AuthUiState()
+}
+
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val repository: AuthRepository
 ) : ViewModel() {
 
-    private val _loginState = MutableStateFlow<Result<Unit>?>(null)
+    private val _loginState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val loginState = _loginState.asStateFlow()
 
-    fun loginUser(email: String, password: String, role: UserRole) {
+    fun loginUser(email: String, pass: String, role: UserRole) {
         viewModelScope.launch {
-            val result = repository.loginUser(email, password, role)
-            _loginState.value = result
+            _loginState.value = AuthUiState.Loading
+
+            val result = repository.loginUser(email, pass, role)
+
+            if (result.isSuccess) {
+                _loginState.value = AuthUiState.Success
+            } else {
+                _loginState.value = AuthUiState.Error(result.exceptionOrNull()?.message ?: "Bilinmeyen hata")
+            }
         }
     }
 }

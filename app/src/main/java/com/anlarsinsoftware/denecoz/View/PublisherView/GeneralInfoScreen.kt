@@ -1,6 +1,9 @@
 package com.anlarsinsoftware.denecoz.View.PublisherView
 
 // GenelInfoScreen.kt
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import coil.compose.AsyncImage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,22 +29,59 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.anlarsinsoftware.denecoz.Model.State.GeneralInfoEvent
+import com.anlarsinsoftware.denecoz.Model.State.NavigationEvent
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel.GeneralInfoViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralInfoScreen(
-    onBackClicked: () -> Unit = {},
+    viewModel: GeneralInfoViewModel = hiltViewModel(),
     navController: NavController
 ) {
+
+    val uiState by viewModel.uiState.collectAsState()
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        viewModel.onEvent(GeneralInfoEvent.OnCoverImageSelected(uri))
+    }
+
+    val datePickerState = rememberDatePickerState()
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    var bookletTypeExpanded by remember { mutableStateOf(false) }
+    val bookletTypes = listOf("A", "B")
+
+    var examTypeExpanded by remember { mutableStateOf(false) }
+    val examTypes = listOf("TYT", "AYT", "LGS")
+
+
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is NavigationEvent.NavigateToAnswerKey -> {
+                    navController.navigate(Screen.AnswerKeyScreen.createRoute(event.examId))
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopBar(
                 title = stringResource(id = R.string.title),
-                onBack = onBackClicked
+                onBack = {navController.popBackStack() }
             )
         },
         bottomBar = { BottomNavBar() },
@@ -54,20 +95,22 @@ fun GeneralInfoScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(12.dp))
-            ImagePlaceholder()
+            ImagePlaceholder(
+                imageUri = uiState.coverImageUri,
+                onClick = {
+                    imagePickerLauncher.launch("image/*")
+                }
+            )
             Spacer(modifier = Modifier.height(24.dp))
 
-            var examName by remember { mutableStateOf("") }
-            var pressDate by remember { mutableStateOf("") }
-            var bookletType by remember { mutableStateOf("") }
-            var examType by remember { mutableStateOf("") }
 
             FormField(
-                value = examName,
-                onValueChange = { examName = it },
+                value = uiState.examName,
+                onValueChange = { viewModel.onEvent(GeneralInfoEvent.OnExamNameChanged(it)) },
                 placeholder =  stringResource(id = R.string.examNamePlaceholder),
+                modifier = Modifier,
                 leading = {   Image(
-                    painter = painterResource(id = R.drawable.ic_book),
+                    painter = painterResource(id = R.drawable.ic_speel_check),
                     contentDescription = "Profile",
                     modifier = Modifier
                         .size(44.dp)
@@ -77,52 +120,113 @@ fun GeneralInfoScreen(
             Spacer(Modifier.height(12.dp))
 
             FormField(
-                value = pressDate,
-                onValueChange = { pressDate = it },
+                value = uiState.publicationDate,
+                onValueChange = {  }, // Boş kalacak
                 placeholder =  stringResource(id = R.string.pressDatePlaceholder),
                 leading = { Icon( painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null) },
-                readOnly = true,
-                onClick = {
-                    // Burada DatePicker açılabilir. Bu prototipte sadece tıklama callback bırakıyoruz.
-                    // Örnek: showDatePicker(...) ve seçilen tarihi pressDate'e ata.
-                }
+                readOnly = true
+
             )
             Spacer(Modifier.height(12.dp))
 
-            FormField(
-                value = bookletType,
-                onValueChange = { bookletType = it },
-                placeholder =  stringResource(id = R.string.bookletTypePlaceholder),
-                leading = { Icon( painter = painterResource(id = R.drawable.ic_analysis), contentDescription = null) },
-                readOnly = true,
-                onClick = {
-                    // Burada dropdown menü açılabilir (ExposedDropdownMenuBox).
+            ExposedDropdownMenuBox(
+                expanded = bookletTypeExpanded,
+                onExpandedChange = { bookletTypeExpanded = !bookletTypeExpanded }
+            ) {
+                FormField(
+                    value = uiState.bookletType,
+                    onValueChange = { },
+                    modifier = Modifier.menuAnchor(), // Bu menüyü bu alana bağlar
+                    placeholder =  stringResource(id = R.string.bookletTypePlaceholder),
+                    leading = { Icon( painter = painterResource(id = R.drawable.ic_analysis), contentDescription = null) },
+                    readOnly = true,
+                )
+                ExposedDropdownMenu(
+                    expanded = bookletTypeExpanded,
+                    onDismissRequest = { bookletTypeExpanded = false }
+                ) {
+                    bookletTypes.forEach { type ->
+                        DropdownMenuItem(
+                            text = { Text(type) },
+                            onClick = {
+                                viewModel.onEvent(GeneralInfoEvent.OnBookletTypeSelected(type))
+                                bookletTypeExpanded = false
+                            }
+                        )
+                    }
                 }
-            )
+            }
             Spacer(Modifier.height(12.dp))
-
-            FormField(
-                value = examType,
-                onValueChange = { examType = it },
-                placeholder =  stringResource(id = R.string.examTypePlaceholder),
-                leading = { Icon( painter = painterResource(id = R.drawable.ic_speel_check), contentDescription = null) },
-                readOnly = true,
-                onClick = {
-                    // Dropdown veya seçim ekranı açılabilir.
+            ExposedDropdownMenuBox(
+                expanded = examTypeExpanded,
+                onExpandedChange = { examTypeExpanded = !examTypeExpanded }
+            ) {
+                FormField(
+                    value = uiState.examType,
+                    onValueChange = { },
+                    modifier = Modifier.menuAnchor(),
+                    placeholder =  stringResource(id = R.string.examTypePlaceholder),
+                    leading = { Icon( painter = painterResource(id = R.drawable.ic_speel_check), contentDescription = null) },
+                    readOnly = true,
+                )
+                ExposedDropdownMenu(
+                    expanded = examTypeExpanded,
+                    onDismissRequest = { examTypeExpanded = false }
+                ) {
+                    examTypes.forEach { type ->
+                        DropdownMenuItem(
+                            text = { Text(type) },
+                            onClick = {
+                                viewModel.onEvent(GeneralInfoEvent.OnExamTypeSelected(type))
+                                examTypeExpanded = false
+                            }
+                        )
+                    }
                 }
-            )
+            }
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Buton
             ConfirmButton(
-                text =  stringResource(id = R.string.confirmContinue),
+                text = stringResource(id = R.string.confirmContinue),
                 onClick = {
-                    navController.navigate(Screen.AnswerKeyScreen.route)
-                }
+                    viewModel.onEvent(GeneralInfoEvent.OnContinueClicked)
+                },
+                enabled = uiState.isFormValid && !uiState.isLoading
             )
 
+            if (uiState.isLoading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator()
+            }
+
+            uiState.errorMessage?.let { error ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = error, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDatePicker = false
+                        val selectedDateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                        val formattedDate = sdf.format(Date(selectedDateMillis))
+                        viewModel.onEvent(GeneralInfoEvent.OnPublicationDateSelected(formattedDate))
+                    }
+                ) { Text("Tamam") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("İptal") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
@@ -154,12 +258,12 @@ fun TopBar(title: String, onBack: () -> Unit) {
 
 
 @Composable
-fun ImagePlaceholder() {
-    // Yuvarlak beyaz arka plan, ortada büyük image icon
+fun ImagePlaceholder(imageUri: Uri?, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp),
+            .height(140.dp)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -169,12 +273,21 @@ fun ImagePlaceholder() {
                 .background(Color(0xFFF2F4F8)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_photos),
-                contentDescription = "Image placeholder",
-                modifier = Modifier.size(56.dp),
-                tint = Color(0xFF222222)
-            )
+            if (imageUri != null) {
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = "Seçilen Kapak Resmi",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_photos),
+                    contentDescription = "Image placeholder",
+                    modifier = Modifier.size(56.dp),
+                    tint = Color(0xFF222222)
+                )
+            }
         }
     }
 }
@@ -184,9 +297,9 @@ fun FormField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
+    modifier: Modifier = Modifier,
     leading: @Composable (() -> Unit)? = null,
-    readOnly: Boolean = false,
-    onClick: (() -> Unit)? = null
+    readOnly: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
@@ -195,19 +308,16 @@ fun FormField(
         placeholder = { Text(placeholder, color = Color(0xFF9AA0B4)) },
         leadingIcon = if (leading != null) ({
             Box(
-                modifier = Modifier
-                    .size(28.dp),
+                modifier = Modifier.size(28.dp),
                 contentAlignment = Alignment.Center
             ) {
                 leading()
             }
         }) else null,
         singleLine = true,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = onClick != null) { onClick?.invoke() },
+            .height(52.dp),
         shape = RoundedCornerShape(12.dp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color(0xFFF6F8FB),
@@ -221,7 +331,7 @@ fun FormField(
 }
 
 @Composable
-fun ConfirmButton(text: String, onClick: () -> Unit) {
+fun ConfirmButton(text: String,enabled: Boolean = true, onClick: () -> Unit) {
     // Gradient görünümü için Box + Button benzeri görünüm
     Box(
         modifier = Modifier
@@ -231,6 +341,7 @@ fun ConfirmButton(text: String, onClick: () -> Unit) {
     ) {
         Button(
             onClick = onClick,
+            enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth(0.86f)
                 .height(56.dp),

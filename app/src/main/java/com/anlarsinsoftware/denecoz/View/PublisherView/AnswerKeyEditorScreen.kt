@@ -54,6 +54,20 @@ fun AnswerKeyEditorScreen(
         }
     }
 
+    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
+        items(uiState.subjects) { subject ->
+            SubjectRow(
+                subject = subject,
+                assigned = subject.assignedCount,
+                expandedState = subject.isExpanded,
+                onToggleExpand = {
+                    viewModel.onEvent(AnswerKeyEditorEvent.OnSubjectToggled(subject.name))
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+
     uiState.errorMessage?.let { message ->
         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
@@ -90,62 +104,69 @@ fun AnswerKeyEditorScreen(
                     .padding(padding)
                     .padding(horizontal = 16.dp)
             ) {
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // TODO: Bu bölümün state yönetimini de ViewModel'e taşıyabiliriz. Şimdilik UI'da kalabilir.
-                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max=200.dp)) {
-                    items(uiState.subjects) { subject ->
-                        SubjectRow(
-                            subject = subject,
-                            assigned = 0,
-                            expandedState = false,
-                            onToggleExpand = { /* TODO */ }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 12.dp)
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp)
                 ) {
-                    items(uiState.questions) { qState ->
-                        if (uiState.mode == EditorMode.ANSWER_KEY) {
-                            AnswerQuestionRow(
-                                index = qState.index,
-                                selected = qState.selectedAnswerIndex,
-                                onSelect = { choiceIndex ->
-                                    viewModel.onEvent(AnswerKeyEditorEvent.OnAnswerSelected(qState.index, choiceIndex))
-                                }
-                            )
-                        } else {
-                            TopicQuestionRow(
-                                index = qState.index,
-                                selectedTopic = qState.selectedTopic,
-                                onToggleDropdown = {
-                                    viewModel.onEvent(AnswerKeyEditorEvent.OnToggleDropdown(qState.index, !qState.isDropdownExpanded))
-                                },
-                                expanded = qState.isDropdownExpanded,
-                                allSubjects = uiState.subjects,
-                                onTopicSelected = { topic ->
-                                    viewModel.onEvent(AnswerKeyEditorEvent.OnTopicSelected(qState.index, topic))
+                    var questionStartIndex = 0
+
+                    // Her bir ders için bir bölüm oluştur
+                    uiState.subjects.forEach { subject ->
+                        item {
+                            SubjectRow(
+                                subject = subject,
+                                assigned = subject.assignedCount,
+                                expandedState = subject.isExpanded,
+                                onToggleExpand = {
+                                    viewModel.onEvent(AnswerKeyEditorEvent.OnSubjectToggled(subject.name))
                                 }
                             )
                         }
+
+                        // 2. Eğer ders genişletilmişse (isExpanded = true), o derse ait soruları listele
+                        if (subject.isExpanded) {
+                            val questionEndIndex = questionStartIndex + subject.totalQuestions
+                            // Ana 'questions' listesinden bu derse ait olan aralığı al
+                            val subjectQuestions = uiState.questions.subList(questionStartIndex, questionEndIndex)
+
+
+                            items(subjectQuestions) { qState ->
+                                val displayIndex = qState.index - questionStartIndex
+                                if (uiState.mode == EditorMode.ANSWER_KEY) {
+                                    AnswerQuestionRow(
+                                        displayIndex=displayIndex,
+                                        selected = qState.selectedAnswerIndex,
+                                        onSelect = { choiceIndex ->
+                                            viewModel.onEvent(AnswerKeyEditorEvent.OnAnswerSelected(qState.index, choiceIndex))
+                                        }
+                                    )
+                                } else { // TOPIC_DISTRIBUTION modu
+                                    TopicQuestionRow(
+                                        displayIndex = displayIndex,
+                                        selectedTopic = qState.selectedTopic,
+                                        onToggleDropdown = {
+                                            viewModel.onEvent(AnswerKeyEditorEvent.OnToggleDropdown(qState.index, !qState.isDropdownExpanded))
+                                        },
+                                        expanded = qState.isDropdownExpanded,
+                                        availableTopics = subject.topics,
+                                        onTopicSelected = { topic ->
+                                            viewModel.onEvent(AnswerKeyEditorEvent.OnTopicSelected(qState.index, topic))
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Bir sonraki dersin başlangıç index'ini hesaplıyoruz
+                        questionStartIndex += subject.totalQuestions
                     }
                 }
-
                 Spacer(modifier = Modifier.height(6.dp))
                 Button(
-                    onClick = {
-                        viewModel.onEvent(AnswerKeyEditorEvent.OnConfirmClicked)
-                    },
+                    onClick = { viewModel.onEvent(AnswerKeyEditorEvent.OnConfirmClicked) },
                     enabled = uiState.isConfirmButtonEnabled && !uiState.isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -187,7 +208,7 @@ private fun SubjectRow(subject: SubjectDef, assigned: Int, expandedState: Boolea
 }
 @Composable
 private fun AnswerQuestionRow(
-    index: Int,
+    displayIndex: Int,
     selected: Int?,
     onSelect: (Int) -> Unit
 ) {
@@ -202,7 +223,7 @@ private fun AnswerQuestionRow(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = stringResource(id = R.string.question_label, index), modifier = Modifier.weight(0.35f))
+            Text(text = stringResource(id = R.string.question_label, displayIndex), modifier = Modifier.weight(0.35f))
             Spacer(modifier = Modifier.width(8.dp))
             Row(modifier = Modifier.weight(0.65f), horizontalArrangement = Arrangement.SpaceBetween) {
                 // 5 options A-E
@@ -227,18 +248,13 @@ private fun AnswerQuestionRow(
 
 @Composable
 private fun TopicQuestionRow(
-    index: Int,
+    displayIndex: Int,
     selectedTopic: String?,
     onToggleDropdown: () -> Unit,
     expanded: Boolean,
-    allSubjects: List<SubjectDef>,
+    availableTopics: List<String>,
     onTopicSelected: (String) -> Unit
 ) {
-    // Flatten all topics into a list with their subject reference (show subject name in dropdown optional)
-    val flatTopics = remember(allSubjects) {
-        allSubjects.flatMap { subj -> subj.topics.map { topic -> Pair(subj.name, topic) } }
-    }
-
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7FF)),
@@ -250,10 +266,9 @@ private fun TopicQuestionRow(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = stringResource(id = R.string.question_label, index), modifier = Modifier.weight(0.35f))
+            Text(text = stringResource(id = R.string.question_label, displayIndex), modifier = Modifier.weight(0.35f))
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Custom dropdown area
             Box(modifier = Modifier.weight(0.65f), contentAlignment = Alignment.CenterEnd) {
                 Row(
                     modifier = Modifier
@@ -270,17 +285,13 @@ private fun TopicQuestionRow(
                     Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = null)
                 }
 
-                // Dropdown menu
+                // Dropdown menü artık doğrudan 'availableTopics' listesini kullanacak.
                 DropdownMenu(expanded = expanded, onDismissRequest = { onToggleDropdown() }) {
-                    flatTopics.forEach { (subjectName, topic) ->
-                        DropdownMenuItem(text = {
-                            Column {
-                                Text(text = topic)
-                                Text(text = subjectName, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                            }
-                        }, onClick = {
-                            onTopicSelected(topic)
-                        })
+                    availableTopics.forEach { topic ->
+                        DropdownMenuItem(
+                            text = { Text(text = topic) },
+                            onClick = { onTopicSelected(topic) }
+                        )
                     }
                 }
             }

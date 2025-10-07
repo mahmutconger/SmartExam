@@ -7,7 +7,13 @@ data class QuestionState(
     val isDropdownExpanded: Boolean = false
 )
 
-data class SubjectDef(val name: String, val totalQuestions: Int, val topics: List<String>)
+data class SubjectDef(
+    val name: String,
+    val totalQuestions: Int,
+    val topics: List<String>,
+    val isExpanded: Boolean = false,
+    val assignedCount: Int = 0
+)
 
 data class AnswerKeyEditorUiState(
     val isLoading: Boolean = true,
@@ -23,6 +29,7 @@ sealed class AnswerKeyEditorEvent {
     data class OnAnswerSelected(val questionIndex: Int, val answerIndex: Int) : AnswerKeyEditorEvent()
     data class OnTopicSelected(val questionIndex: Int, val topic: String) : AnswerKeyEditorEvent()
     data class OnToggleDropdown(val questionIndex: Int, val isExpanded: Boolean) : AnswerKeyEditorEvent()
+    data class OnSubjectToggled(val subjectName: String) : AnswerKeyEditorEvent()
     object OnConfirmClicked : AnswerKeyEditorEvent()
 }
 sealed class AnswerKeyEditorNavigationEvent {

@@ -49,17 +49,39 @@ class GeneralInfoViewModel @Inject constructor(
     }
 
     private fun createDraftExam() {
-        if (!_uiState.value.isFormValid || _uiState.value.isLoading) return
+        val currentState = _uiState.value
+        if (!currentState.isFormValid || currentState.isLoading) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
+            val subjectsList = when (currentState.examType) {
+                "TYT" -> listOf(
+                    mapOf("subjectName" to "Türkçe", "questionCount" to 40L),
+                    mapOf("subjectName" to "Sosyal Bilimler", "questionCount" to 20L),
+                    mapOf("subjectName" to "Temel Matematik", "questionCount" to 40L),
+                    mapOf("subjectName" to "Fen Bilimleri", "questionCount" to 20L)
+                )
+                "AYT" -> listOf(
+                    mapOf("subjectName" to "Türk Dili ve Edebiyatı-Sosyal Bilimler-1", "questionCount" to 40L),
+                    mapOf("subjectName" to "Sosyal Bilimler-2", "questionCount" to 40L),
+                    mapOf("subjectName" to "Matematik", "questionCount" to 40L),
+                    mapOf("subjectName" to "Fen Bilimleri", "questionCount" to 40L)
+                    // TODO AYT yapısı daha karmaşık olabilir (örn: Yabancı Dil), bu şimdilik bir başlangıç.
+                )
+                "LGS" -> {
+                    // TODO: LGS için ders yapısı eklenecek
+                    emptyList()
+                }
+                else -> emptyList()
+            }
+
             val examDetails = mapOf(
-                "name" to _uiState.value.examName,
-                "publicationDate" to _uiState.value.publicationDate,
-                "bookletType" to _uiState.value.bookletType,
-                "examType" to _uiState.value.examType
-                // Image URI'yi burada göndermiyoruz, onu ayrı bir adımda yükleyeceğiz.
+                "name" to currentState.examName,
+                "publicationDate" to currentState.publicationDate,
+                "bookletType" to currentState.bookletType,
+                "examType" to currentState.examType,
+                "subjects" to subjectsList
             )
 
             examRepository.createDraftExam(examDetails)

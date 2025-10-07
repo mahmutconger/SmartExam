@@ -1,5 +1,6 @@
 package com.anlarsinsoftware.denecoz.Repository.PublisherRepo
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
+import com.anlarsinsoftware.denecoz.Model.State.SubjectDef
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -45,7 +46,34 @@ class ExamRepositoryImpl @Inject constructor(
         }
     }
 
-    // Bu fonksiyonu ExamRepositoryImpl sınıfınızın içine ekleyin
+    override suspend fun getCurriculum(examType: String): Result<List<SubjectDef>> {
+        return try {
+            val subjectDefs = mutableListOf<SubjectDef>()
+
+            // examType'a ait dersleri çek (örn: TYT'nin altındaki 'subjects' koleksiyonu)
+            val subjectsSnapshot = firestore.collection("curriculum").document(examType)
+                .collection("subjects").get().await()
+
+            for (subjectDoc in subjectsSnapshot.documents) {
+                val subjectName = subjectDoc.getString("name") ?: ""
+
+                // Her dersin altındaki konuları çek
+                val topicsSnapshot = subjectDoc.reference.collection("topics").get().await()
+                val topicsList = topicsSnapshot.documents.map { it.getString("name") ?: "" }
+
+                subjectDefs.add(
+                    SubjectDef(
+                        name = subjectName,
+                        totalQuestions = 0, // Bu bilgiyi examDetails'den alacağız
+                        topics = topicsList
+                    )
+                )
+            }
+            Result.success(subjectDefs)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun getFullExamForPreview(examId: String): Result<FullExamData> = coroutineScope {
         try {

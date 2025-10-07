@@ -39,32 +39,48 @@ class AnswerKeyEditorViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = false, errorMessage = "Deneme ID'si bulunamadı.") }
         } else {
             _uiState.update { it.copy(examId = examId, mode = mode) }
-            loadExamDetails(examId)
+            loadInitialData(examId)
         }
     }
 
-    private fun loadExamDetails(examId: String) {
+    private fun loadInitialData(examId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            repository.getExamDetails(examId)
-                .onSuccess { examDetails ->
-                    val subjects = examDetails.subjects.map {
+            repository.getExamDetails(examId).onSuccess { examDetails ->
+
+                repository.getCurriculum(examDetails.examType).onSuccess { curriculumSubjects ->
+
+                    val finalSubjects = examDetails.subjects.map { subjectMap ->
+                        val subjectName = subjectMap["subjectName"] as? String ?: ""
+                        val questionCount = (subjectMap["questionCount"] as? Long)?.toInt() ?: 0
+
+                        val topicsForSubject = curriculumSubjects.find { it.name == subjectName }?.topics ?: emptyList()
+
                         SubjectDef(
-                            name = it["subjectName"] as? String ?: "",
-                            totalQuestions = (it["questionCount"] as? Long)?.toInt() ?: 0,
-                            topics = emptyList() // TODO: Konuları da curriculum'dan çek
+                            name = subjectName,
+                            totalQuestions = questionCount,
+                            topics = topicsForSubject
                         )
                     }
-                    val totalQuestions = subjects.sumOf { it.totalQuestions }
+
+                    val totalQuestions = finalSubjects.sumOf { it.totalQuestions }
                     val questions = List(totalQuestions) { QuestionState(index = it + 1) }
 
                     _uiState.update {
-                        it.copy(isLoading = false, subjects = subjects, questions = questions)
+                        it.copy(
+                            isLoading = false,
+                            subjects = finalSubjects,
+                            questions = questions
+                        )
                     }
-                }
-                .onFailure { exception ->
+
+                }.onFailure { exception ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
                 }
+
+            }.onFailure { exception ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
+            }
         }
     }
 
@@ -75,6 +91,19 @@ class AnswerKeyEditorViewModel @Inject constructor(
             }
             is AnswerKeyEditorEvent.OnTopicSelected -> {
                 updateQuestionState(event.questionIndex) { it.copy(selectedTopic = event.topic, isDropdownExpanded = false) }
+                recalculateAssignedCounts()
+            }
+            is AnswerKeyEditorEvent.OnSubjectToggled -> {
+                _uiState.update { currentState ->
+                    val updatedSubjects = currentState.subjects.map { subject ->
+                        if (subject.name == event.subjectName) {
+                            subject.copy(isExpanded = !subject.isExpanded)
+                        } else {
+                            subject
+                        }
+                    }
+                    currentState.copy(subjects = updatedSubjects)
+                }
             }
             is AnswerKeyEditorEvent.OnToggleDropdown -> {
                 updateQuestionState(event.questionIndex) { it.copy(isDropdownExpanded = event.isExpanded) }
@@ -92,6 +121,18 @@ class AnswerKeyEditorViewModel @Inject constructor(
             currentState.copy(questions = updatedQuestions)
         }
         validateForm()
+    }
+
+    private fun recalculateAssignedCounts() {
+        _uiState.update { currentState ->
+            val updatedSubjects = currentState.subjects.map { subject ->
+                val count = currentState.questions.count { q ->
+                    subject.topics.contains(q.selectedTopic)
+                }
+                subject.copy(assignedCount = count)
+            }
+            currentState.copy(subjects = updatedSubjects)
+        }
     }
 
     private fun validateForm() {

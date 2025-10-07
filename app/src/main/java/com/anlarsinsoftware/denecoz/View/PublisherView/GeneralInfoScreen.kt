@@ -1,7 +1,7 @@
 package com.anlarsinsoftware.denecoz.View.PublisherView
 
-// GenelInfoScreen.kt
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -121,12 +121,12 @@ fun GeneralInfoScreen(
 
             FormField(
                 value = uiState.publicationDate,
-                onValueChange = {  }, // Boş kalacak
-                placeholder =  stringResource(id = R.string.pressDatePlaceholder),
-                leading = { Icon( painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null) },
-                readOnly = true
-
+                onValueChange = { viewModel.onEvent(GeneralInfoEvent.OnPublicationDateSelected(it)) },
+                placeholder = "gg/AA/yyyy",
+                leading = { Icon(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null) },
+                readOnly = false
             )
+
             Spacer(Modifier.height(12.dp))
 
             ExposedDropdownMenuBox(
@@ -136,7 +136,7 @@ fun GeneralInfoScreen(
                 FormField(
                     value = uiState.bookletType,
                     onValueChange = { },
-                    modifier = Modifier.menuAnchor(), // Bu menüyü bu alana bağlar
+                    modifier = Modifier.menuAnchor(),
                     placeholder =  stringResource(id = R.string.bookletTypePlaceholder),
                     leading = { Icon( painter = painterResource(id = R.drawable.ic_analysis), contentDescription = null) },
                     readOnly = true,
@@ -209,6 +209,7 @@ fun GeneralInfoScreen(
         }
     }
     if (showDatePicker) {
+        Log.d("GeneralInfoScreen", "DatePickerDialog açılıyor...")
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
@@ -332,7 +333,6 @@ fun FormField(
 
 @Composable
 fun ConfirmButton(text: String,enabled: Boolean = true, onClick: () -> Unit) {
-    // Gradient görünümü için Box + Button benzeri görünüm
     Box(
         modifier = Modifier
             .fillMaxWidth()

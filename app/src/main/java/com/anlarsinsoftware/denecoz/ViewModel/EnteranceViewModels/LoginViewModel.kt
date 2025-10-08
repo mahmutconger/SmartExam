@@ -1,9 +1,12 @@
 package com.anlarsinsoftware.denecoz.ViewModel.EnteranceViewModels
 
+import android.util.Log
 import com.anlarsinsoftware.denecoz.Repository.AuthRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.anlarsinsoftware.denecoz.Model.UserRole
+import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
+import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +22,8 @@ sealed class AuthUiState {
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val examRepository: ExamRepository
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
@@ -36,6 +40,19 @@ class LoginViewModel @Inject constructor(
             } else {
                 _loginState.value = AuthUiState.Error(result.exceptionOrNull()?.message ?: "Bilinmeyen hata")
             }
+        }
+    }
+    // LoginViewModel.kt içinde
+    fun moveEdebiyatData() {
+        viewModelScope.launch {
+            Log.d("Migration", "Geometri taşıma işlemi başlıyor...")
+            examRepository.moveDocument()
+                .onSuccess {
+                    Log.d("Migration", "Geometri taşıma işlemi BAŞARILI!")
+                }
+                .onFailure { exception ->
+                    Log.e("Migration", "Geometri taşıma işlemi BAŞARISIZ!", exception)
+                }
         }
     }
 }

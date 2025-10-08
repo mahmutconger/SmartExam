@@ -43,6 +43,7 @@ fun LoginScreen(
         emailValue = email,
         onEmailChange = { email = it },
         passwordValue = password,
+        viewModel = viewModel,
         onPasswordChange = { password = it },
         buttonText = stringResource(id = R.string.continuee),
         bottomText = stringResource(id = R.string.no_account),

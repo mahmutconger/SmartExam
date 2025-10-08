@@ -9,6 +9,7 @@ import androidx.navigation.NavController
 import com.anlarsinsoftware.denecoz.Model.UserRole
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.ViewModel.EnteranceViewModels.LoginViewModel
 import com.anlarsinsoftware.denecoz.ViewModel.EnteranceViewModels.RegisterViewModel
 
 @Composable
@@ -20,12 +21,14 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var selectedRole by remember { mutableStateOf(UserRole.STUDENT) }
     val context = LocalContext.current
+    var loginviewm: LoginViewModel=hiltViewModel()
 
     val registerState by viewModel.registerState.collectAsState()
 
     AuthScreen(
         title = stringResource(id = R.string.register_title),
         emailValue = email,
+        viewModel = loginviewm,
         onEmailChange = { email = it },
         passwordValue = password,
         onPasswordChange = { password = it },

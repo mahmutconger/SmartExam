@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anlarsinsoftware.denecoz.Model.UserRole
 import com.anlarsinsoftware.denecoz.R
+import com.anlarsinsoftware.denecoz.ViewModel.EnteranceViewModels.LoginViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +34,7 @@ fun AuthScreen(
     title: String,
     emailValue: String,
     onEmailChange: (String) -> Unit,
+    viewModel: LoginViewModel,
     passwordValue: String,
     onPasswordChange: (String) -> Unit,
     buttonText: String,

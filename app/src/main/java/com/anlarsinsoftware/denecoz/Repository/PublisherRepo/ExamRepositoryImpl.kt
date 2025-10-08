@@ -2,6 +2,7 @@ package com.anlarsinsoftware.denecoz.Repository.PublisherRepo
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
 import com.anlarsinsoftware.denecoz.Model.State.SubjectDef
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -63,8 +64,9 @@ class ExamRepositoryImpl @Inject constructor(
 
                 subjectDefs.add(
                     SubjectDef(
+                        id = subjectDoc.id,
                         name = subjectName,
-                        totalQuestions = 0, // Bu bilgiyi examDetails'den alacağız
+                        totalQuestions = 0,
                         topics = topicsList
                     )
                 )
@@ -112,6 +114,47 @@ class ExamRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+
+
+    override suspend fun moveDocument():  Result<Unit> {
+        return try {
+            // 1. Eski ve yeni konumları tanımla
+            val oldGeoDocRef = firestore.collection("curriculum/TYT/subjects/matematik/topics").document("geometri")
+            val newGeoDocRef = firestore.collection("curriculum/TYT/subjects").document("geometri")
+
+            // 2. Eski geometri dokümanının verisini (örn: name: "Geometri") al
+            val oldGeoDocSnapshot = oldGeoDocRef.get().await()
+            if (oldGeoDocSnapshot.exists()) {
+                // 3. Yeni, ana seviyedeki 'geometri' dokümanını bu veriyle oluştur
+                newGeoDocRef.set(oldGeoDocSnapshot.data!!).await()
+            } else {
+                // Eğer eski 'geometri' dokümanı yoksa veya boşsa, yine de yenisini oluşturalım
+                newGeoDocRef.set(mapOf("name" to "Geometri")).await()
+            }
+
+            // 4. Eski konumdaki 'subTopics' koleksiyonundaki tüm konuları çek
+            val oldSubTopicsSnapshot = oldGeoDocRef.collection("subTopics").get().await()
+
+            // 5. Yeni konumda 'topics' adında bir alt koleksiyon oluşturmak için batch write başlat
+            val batch = firestore.batch()
+            val newTopicsCollection = newGeoDocRef.collection("topics")
+
+            oldSubTopicsSnapshot.documents.forEach { oldSubTopicDoc ->
+                // Her bir alt konuyu, yeni yerdeki 'topics' koleksiyonuna kopyala
+                val newTopicDocRef = newTopicsCollection.document(oldSubTopicDoc.id)
+                batch.set(newTopicDocRef, oldSubTopicDoc.data!!)
+            }
+
+            // 6. Tüm kopyalama işlemlerini tek seferde gerçekleştir
+            batch.commit().await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 
     override suspend fun saveAnswerKey(examId: String, booklet: String, answers: Map<String, String>): Result<Unit> {
         return try {

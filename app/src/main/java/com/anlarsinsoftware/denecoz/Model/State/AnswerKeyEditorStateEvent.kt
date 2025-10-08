@@ -3,16 +3,19 @@ package com.anlarsinsoftware.denecoz.Model.State
 data class QuestionState(
     val index: Int,
     val selectedAnswerIndex: Int? = null,
+    val selectedSubSubject: String? = null,
     val selectedTopic: String? = null,
     val isDropdownExpanded: Boolean = false
 )
 
 data class SubjectDef(
+    val id: String = "",
     val name: String,
     val totalQuestions: Int,
     val topics: List<String>,
     val isExpanded: Boolean = false,
-    val assignedCount: Int = 0
+    val assignedCount: Int = 0,
+    val subSubjects: List<SubjectDef>? = null
 )
 
 data class AnswerKeyEditorUiState(
@@ -27,6 +30,7 @@ data class AnswerKeyEditorUiState(
 
 sealed class AnswerKeyEditorEvent {
     data class OnAnswerSelected(val questionIndex: Int, val answerIndex: Int) : AnswerKeyEditorEvent()
+    data class OnSubSubjectSelected(val questionIndex: Int, val subSubject: String) : AnswerKeyEditorEvent()
     data class OnTopicSelected(val questionIndex: Int, val topic: String) : AnswerKeyEditorEvent()
     data class OnToggleDropdown(val questionIndex: Int, val isExpanded: Boolean) : AnswerKeyEditorEvent()
     data class OnSubjectToggled(val subjectName: String) : AnswerKeyEditorEvent()

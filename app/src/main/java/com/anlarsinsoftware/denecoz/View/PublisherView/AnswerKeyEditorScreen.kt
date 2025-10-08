@@ -30,6 +30,7 @@ import androidx.navigation.NavController
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEditorEvent
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEditorNavigationEvent
 import com.anlarsinsoftware.denecoz.Model.State.EditorMode
+import com.anlarsinsoftware.denecoz.Model.State.QuestionState
 import com.anlarsinsoftware.denecoz.Model.State.SubjectDef
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
@@ -144,16 +145,20 @@ fun AnswerKeyEditorScreen(
                                         }
                                     )
                                 } else { // TOPIC_DISTRIBUTION modu
+                                    val subSubjectsToShow = subject.subSubjects ?: listOf(subject)
+
                                     TopicQuestionRow(
                                         displayIndex = displayIndex,
-                                        selectedTopic = qState.selectedTopic,
-                                        onToggleDropdown = {
-                                            viewModel.onEvent(AnswerKeyEditorEvent.OnToggleDropdown(qState.index, !qState.isDropdownExpanded))
+                                        qState = qState,
+                                        subSubjects = subSubjectsToShow,
+                                        onSubSubjectSelected = { subSubjectName ->
+                                            viewModel.onEvent(AnswerKeyEditorEvent.OnSubSubjectSelected(qState.index, subSubjectName))
                                         },
-                                        expanded = qState.isDropdownExpanded,
-                                        availableTopics = subject.topics,
                                         onTopicSelected = { topic ->
                                             viewModel.onEvent(AnswerKeyEditorEvent.OnTopicSelected(qState.index, topic))
+                                        },
+                                        onToggleDropdown = {
+                                            viewModel.onEvent(AnswerKeyEditorEvent.OnToggleDropdown(qState.index, !qState.isDropdownExpanded))
                                         }
                                     )
                                 }
@@ -246,50 +251,72 @@ private fun AnswerQuestionRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopicQuestionRow(
     displayIndex: Int,
-    selectedTopic: String?,
-    onToggleDropdown: () -> Unit,
-    expanded: Boolean,
-    availableTopics: List<String>,
-    onTopicSelected: (String) -> Unit
+    qState: QuestionState,
+    subSubjects: List<SubjectDef>,
+    onSubSubjectSelected: (String) -> Unit,
+    onTopicSelected: (String) -> Unit,
+    onToggleDropdown: () -> Unit
 ) {
+    val topicsForSelectedSubSubject = remember(qState.selectedSubSubject) {
+        subSubjects.find { it.name == qState.selectedSubSubject }?.topics ?: emptyList()
+    }
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7FF)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(text = stringResource(id = R.string.question_label, displayIndex), modifier = Modifier.weight(0.35f))
-            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = stringResource(id = R.string.question_label, displayIndex))
 
-            Box(modifier = Modifier.weight(0.65f), contentAlignment = Alignment.CenterEnd) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onToggleDropdown() }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = selectedTopic ?: stringResource(id = R.string.select_topic_placeholder),
-                        color = if (selectedTopic == null) Color.Gray else Color.Black
-                    )
-                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = null)
-                }
-
-                // Dropdown menü artık doğrudan 'availableTopics' listesini kullanacak.
-                DropdownMenu(expanded = expanded, onDismissRequest = { onToggleDropdown() }) {
-                    availableTopics.forEach { topic ->
+            // --- 1. DROPDOWN: ALT DERS SEÇİMİ (Tarih, Coğrafya vb.) ---
+            var subSubjectExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = subSubjectExpanded,
+                onExpandedChange = { subSubjectExpanded = !subSubjectExpanded }
+            ) {
+                OutlinedTextField(
+                    value = qState.selectedSubSubject ?: "Ders Seçin",
+                    onValueChange = {}, readOnly = true,
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = subSubjectExpanded) }
+                )
+                ExposedDropdownMenu(expanded = subSubjectExpanded, onDismissRequest = { subSubjectExpanded = false }) {
+                    subSubjects.forEach { subSubject ->
                         DropdownMenuItem(
-                            text = { Text(text = topic) },
+                            text = { Text(subSubject.name) },
+                            onClick = {
+                                onSubSubjectSelected(subSubject.name)
+                                subSubjectExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // --- 2. DROPDOWN: KONU SEÇİMİ ---
+            ExposedDropdownMenuBox(
+                expanded = qState.isDropdownExpanded,
+                onExpandedChange = { if (qState.selectedSubSubject != null) onToggleDropdown() }
+            ) {
+                OutlinedTextField(
+                    value = qState.selectedTopic ?: "Konu Seçin",
+                    onValueChange = {}, readOnly = true,
+                    enabled = qState.selectedSubSubject != null,
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = qState.isDropdownExpanded) }
+                )
+                ExposedDropdownMenu(expanded = qState.isDropdownExpanded, onDismissRequest = { onToggleDropdown() }) {
+                    topicsForSelectedSubSubject.forEach { topic ->
+                        DropdownMenuItem(
+                            text = { Text(topic) },
                             onClick = { onTopicSelected(topic) }
                         )
                     }

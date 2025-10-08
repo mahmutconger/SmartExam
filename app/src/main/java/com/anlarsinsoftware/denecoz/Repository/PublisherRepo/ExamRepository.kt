@@ -27,4 +27,6 @@ interface ExamRepository {
     suspend fun getExamsForPublisher(publisherId: String): Result<List<ExamSummary>>
     suspend fun getFullExamForPreview(examId: String): Result<FullExamData>
     suspend fun getCurriculum(examType: String): Result<List<SubjectDef>>
+    suspend fun moveDocument(): Result<Unit>
+
 }

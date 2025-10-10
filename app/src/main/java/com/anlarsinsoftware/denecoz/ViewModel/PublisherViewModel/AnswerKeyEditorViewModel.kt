@@ -31,16 +31,30 @@ class AnswerKeyEditorViewModel @Inject constructor(
     private val _navigationEvent = MutableSharedFlow<AnswerKeyEditorNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
-    private val aytCompositeTestRules = mapOf(
-        "Türk Dili ve Edebiyatı-Sosyal Bilimler-1" to listOf("edebiyat", "tarih", "cografya"),
-        "Sosyal Bilimler-2" to listOf("tarih", "cografya", "felsefe", "din_kulturu"),
-        "Fen Bilimleri" to listOf("fizik", "kimya", "biyoloji"),
-        "Matematik" to listOf("matematik", "geometri"),
-
-        "Temel Matematik" to listOf("matematik", "geometri"),
-        "Fen Bilimleri" to listOf("fizik", "kimya", "biyoloji"), // AYT ile aynı anahtarı kullanabiliriz.
-        "Sosyal Bilimler" to listOf("tarih", "cografya", "felsefe", "din_kulturu")
+    private val compositeTestRules = mapOf(
+        "Sosyal Bilimler" to listOf(
+            Pair("tarih", 5), Pair("cografya", 5), Pair("felsefe", 5), Pair("din_kulturu", 5)
+        ),
+        "Temel Matematik" to listOf(
+            Pair("matematik", 35), Pair("geometri", 5) // Tahmini
+        ),
+        "Fen Bilimleri" to listOf(
+            Pair("fizik", 7), Pair("kimya", 7), Pair("biyoloji", 6)
+        ),
+        "Türk Dili ve Edebiyatı-Sosyal Bilimler-1" to listOf(
+            Pair("edebiyat", 24), Pair("tarih", 10), Pair("cografya", 6)
+        ),
+        "Sosyal Bilimler-2" to listOf(
+            Pair("tarih", 11), Pair("cografya", 11), Pair("felsefe", 12), Pair("din_kulturu", 6)
+        ),
+        "AYT Matematik" to listOf(
+            Pair("matematik", 35), Pair("geometri", 5) // Tahmini
+        ),
+        "AYT Fen Bilimleri" to listOf(
+            Pair("fizik", 14), Pair("kimya", 13), Pair("biyoloji", 13)
+        )
     )
+
 
     init {
         val examId = savedStateHandle.get<String>("examId")
@@ -56,56 +70,69 @@ class AnswerKeyEditorViewModel @Inject constructor(
 
     private fun loadInitialData(examId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             val examDetailsResult = repository.getExamDetails(examId)
             val curriculumResult = repository.getCurriculum(examDetailsResult.getOrNull()?.examType ?: "")
 
             if (examDetailsResult.isSuccess && curriculumResult.isSuccess) {
                 val examDetails = examDetailsResult.getOrThrow()
-                val curriculumSubjects = curriculumResult.getOrThrow()
+                val allCurriculumSubjects = curriculumResult.getOrThrow()
 
-                // 1. Denemenin testlerini ('subjects' alanı) al
-                val testsInExam = examDetails.subjects.map { it["subjectName"] as? String ?: "" }
+                val finalSubjectsForUI = mutableListOf<SubjectDef>()
+                val questionsForUI = mutableListOf<QuestionState>()
+                var questionCounter = 0
 
-                // 2. Bu test listesini, kuralları kullanarak zenginleştirilmiş bir ders listesine dönüştür
-                val finalSubjects = testsInExam.map { testName ->
-                    val questionCount = (examDetails.subjects.find { it["subjectName"] == testName }
-                        ?.get("questionCount") as? Long)?.toInt() ?: 0
+                (examDetails.subjects as? List<Map<String, Any>>)?.forEach { testMap ->
+                    val testName = testMap["testName"] as? String ?: ""
+                    val totalQuestionCount = (testMap["questionCount"] as? Long)?.toInt() ?: 0
 
-                    if (aytCompositeTestRules.containsKey(testName)) {
-                        // Bu bir birleşik test (örn: "Sosyal Bilimler-2")
-                        val subSubjectIds = aytCompositeTestRules[testName]!!
-                        val subSubjects = curriculumSubjects.filter { it.id in subSubjectIds } // id kullandığımızı varsayalım
+                    if (compositeTestRules.containsKey(testName)) {
+                        val rules = compositeTestRules[testName]!!
+                        val subSubjectsForUI = rules.mapNotNull { (subjectId, _) ->
+                            allCurriculumSubjects.find { it.id == subjectId }
+                        }
 
-                        SubjectDef(
-                            name = testName,
-                            totalQuestions = questionCount,
-                            topics = emptyList(),
-                            subSubjects = subSubjects // Alt dersleri buraya ekle
-                        )
+                        finalSubjectsForUI.add(SubjectDef(name = testName, totalQuestions = totalQuestionCount, topics = emptyList(), subSubjects = subSubjectsForUI))
+
+                        // --- TODO ÇÖZÜLDÜ: Soruları alt derslere göre otomatik ata ---
+                        rules.forEach { (subjectId, questionCount) ->
+                            val subjectName = allCurriculumSubjects.find { it.id == subjectId }?.name ?: ""
+                            for (i in 1..questionCount) {
+                                questionsForUI.add(QuestionState(index = questionCounter + i, assignedSubjectName = subjectName))
+                            }
+                            questionCounter += questionCount
+                        }
                     } else {
-                        // Bu tekil bir test (örn: "Matematik")
-                        curriculumSubjects.find { it.name == testName }?.copy(totalQuestions = questionCount)
-                            ?: SubjectDef(name = testName, totalQuestions = questionCount, topics = emptyList())
+                        // Bu tekil bir test (örn: Türkçe)
+                        allCurriculumSubjects.find { it.name == testName }?.let { subjectDef ->
+                            finalSubjectsForUI.add(subjectDef.copy(totalQuestions = totalQuestionCount))
+                            for (i in 1..totalQuestionCount) {
+                                questionsForUI.add(QuestionState(index = questionCounter + i, assignedSubjectName = testName))
+                            }
+                            questionCounter += totalQuestionCount
+                        }
                     }
                 }
-
-                val totalQuestions = finalSubjects.sumOf { it.totalQuestions }
-                val questions = List(totalQuestions) { QuestionState(index = it + 1) }
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        subjects = finalSubjects,
-                        questions = questions
-                    )
-                }
-
+                _uiState.update { it.copy(isLoading = false, subjects = finalSubjectsForUI, questions = questionsForUI) }
             } else {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Veriler yüklenemedi.") }
             }
         }
+    }
+
+    fun getTopicsForSubject(subjectName: String?): List<String> {
+        if (subjectName == null) return emptyList()
+
+        // uiState'deki tüm ders listesini gezerek doğru konu listesini bul ve döndür.
+        _uiState.value.subjects.forEach { test ->
+            if (test.subSubjects != null) { // Bu bir birleşik test
+                test.subSubjects.find { it.name == subjectName }?.let { return it.topics }
+            } else { // Bu tekil bir test
+                if (test.name == subjectName) return test.topics
+            }
+        }
+        return emptyList()
     }
 
     fun onEvent(event: AnswerKeyEditorEvent) {
@@ -153,11 +180,34 @@ class AnswerKeyEditorViewModel @Inject constructor(
         validateForm()
     }
 
+    /*
     private fun recalculateAssignedCounts() {
         _uiState.update { currentState ->
             val updatedSubjects = currentState.subjects.map { subject ->
                 val count = currentState.questions.count { q ->
                     subject.topics.contains(q.selectedTopic)
+                }
+                subject.copy(assignedCount = count)
+            }
+            currentState.copy(subjects = updatedSubjects)
+        }
+    }
+     */
+
+    private fun recalculateAssignedCounts() {
+        _uiState.update { currentState ->
+            val updatedSubjects = currentState.subjects.map { subject ->
+                val count = if (subject.subSubjects != null) {
+                    // Bu bir birleşik test ise, tüm alt derslerin konularını içeren tek bir liste oluştur
+                    val allTopicsInCompositeTest = subject.subSubjects.flatMap { it.topics }
+                    currentState.questions.count { q ->
+                        allTopicsInCompositeTest.contains(q.selectedTopic)
+                    }
+                } else {
+                    // Bu tekil bir test
+                    currentState.questions.count { q ->
+                        subject.topics.contains(q.selectedTopic)
+                    }
                 }
                 subject.copy(assignedCount = count)
             }

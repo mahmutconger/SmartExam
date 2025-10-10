@@ -1,10 +1,12 @@
 package com.anlarsinsoftware.denecoz.View.PublisherView
 
 import android.content.res.Configuration
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -52,20 +55,6 @@ fun AnswerKeyEditorScreen(
                     navController.navigate(Screen.PreviewScreen.createRoute(event.examId))
                 }
             }
-        }
-    }
-
-    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
-        items(uiState.subjects) { subject ->
-            SubjectRow(
-                subject = subject,
-                assigned = subject.assignedCount,
-                expandedState = subject.isExpanded,
-                onToggleExpand = {
-                    viewModel.onEvent(AnswerKeyEditorEvent.OnSubjectToggled(subject.name))
-                }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 
@@ -112,11 +101,14 @@ fun AnswerKeyEditorScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp)
                 ) {
-                    var questionStartIndex = 0
+                    itemsIndexed(
+                        items = uiState.subjects,
+                        key = { _, subject -> "subject_${subject.name}" }
+                    ) { subjectIndex, subject ->
 
-                    // Her bir ders için bir bölüm oluştur
-                    uiState.subjects.forEach { subject ->
-                        item {
+                        // Her bir satır kendi Column'u içinde olacak.
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // 1. Ders Başlığı (SubjectRow)
                             SubjectRow(
                                 subject = subject,
                                 assigned = subject.assignedCount,
@@ -125,48 +117,49 @@ fun AnswerKeyEditorScreen(
                                     viewModel.onEvent(AnswerKeyEditorEvent.OnSubjectToggled(subject.name))
                                 }
                             )
-                        }
 
-                        // 2. Eğer ders genişletilmişse (isExpanded = true), o derse ait soruları listele
-                        if (subject.isExpanded) {
-                            val questionEndIndex = questionStartIndex + subject.totalQuestions
-                            // Ana 'questions' listesinden bu derse ait olan aralığı al
-                            val subjectQuestions = uiState.questions.subList(questionStartIndex, questionEndIndex)
+                            // 2. Eğer ders genişletilmişse, o derse ait soruları listele
+                            if (subject.isExpanded) {
+                                val questionStartIndex = uiState.subjects.take(subjectIndex).sumOf { it.totalQuestions }
 
+                                val questionEndIndex = questionStartIndex + subject.totalQuestions
 
-                            items(subjectQuestions) { qState ->
-                                val displayIndex = qState.index - questionStartIndex
-                                if (uiState.mode == EditorMode.ANSWER_KEY) {
-                                    AnswerQuestionRow(
-                                        displayIndex=displayIndex,
-                                        selected = qState.selectedAnswerIndex,
-                                        onSelect = { choiceIndex ->
-                                            viewModel.onEvent(AnswerKeyEditorEvent.OnAnswerSelected(qState.index, choiceIndex))
+                                if (questionStartIndex < questionEndIndex && questionEndIndex <= uiState.questions.size) {
+                                    val subjectQuestions = uiState.questions.subList(questionStartIndex, questionEndIndex)
+
+                                    // 'items' içinde olduğumuz için burada artık 'items' kullanamayız,
+                                    // bu yüzden basit bir 'forEach' döngüsü kullanıyoruz. Bu performanslıdır.
+                                    subjectQuestions.forEach { qState ->
+                                        val displayIndex = qState.index - questionStartIndex
+
+                                        if (uiState.mode == EditorMode.ANSWER_KEY) {
+                                            AnswerQuestionRow(
+                                                displayIndex = displayIndex,
+                                                selected = qState.selectedAnswerIndex,
+                                                onSelect = { choiceIndex ->
+                                                    viewModel.onEvent(AnswerKeyEditorEvent.OnAnswerSelected(qState.index, choiceIndex))
+                                                }
+                                            )
+                                        } else { // TOPIC_DISTRIBUTION modu
+                                            val topicsForThisQuestion = viewModel.getTopicsForSubject(qState.assignedSubjectName)
+                                            TopicQuestionRow(
+                                                displayIndex = displayIndex,
+                                                assignedSubject = qState.assignedSubjectName ?: "Bilinmiyor",
+                                                selectedTopic = qState.selectedTopic,
+                                                availableTopics = topicsForThisQuestion,
+                                                expanded = qState.isDropdownExpanded,
+                                                onToggleDropdown = {
+                                                    viewModel.onEvent(AnswerKeyEditorEvent.OnToggleDropdown(qState.index, !qState.isDropdownExpanded))
+                                                },
+                                                onTopicSelected = { topic ->
+                                                    viewModel.onEvent(AnswerKeyEditorEvent.OnTopicSelected(qState.index, topic))
+                                                }
+                                            )
                                         }
-                                    )
-                                } else { // TOPIC_DISTRIBUTION modu
-                                    val subSubjectsToShow = subject.subSubjects ?: listOf(subject)
-
-                                    TopicQuestionRow(
-                                        displayIndex = displayIndex,
-                                        qState = qState,
-                                        subSubjects = subSubjectsToShow,
-                                        onSubSubjectSelected = { subSubjectName ->
-                                            viewModel.onEvent(AnswerKeyEditorEvent.OnSubSubjectSelected(qState.index, subSubjectName))
-                                        },
-                                        onTopicSelected = { topic ->
-                                            viewModel.onEvent(AnswerKeyEditorEvent.OnTopicSelected(qState.index, topic))
-                                        },
-                                        onToggleDropdown = {
-                                            viewModel.onEvent(AnswerKeyEditorEvent.OnToggleDropdown(qState.index, !qState.isDropdownExpanded))
-                                        }
-                                    )
+                                    }
                                 }
                             }
                         }
-
-                        // Bir sonraki dersin başlangıç index'ini hesaplıyoruz
-                        questionStartIndex += subject.totalQuestions
                     }
                 }
                 Spacer(modifier = Modifier.height(6.dp))
@@ -251,72 +244,52 @@ private fun AnswerQuestionRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopicQuestionRow(
     displayIndex: Int,
-    qState: QuestionState,
-    subSubjects: List<SubjectDef>,
-    onSubSubjectSelected: (String) -> Unit,
-    onTopicSelected: (String) -> Unit,
-    onToggleDropdown: () -> Unit
+    assignedSubject: String,
+    selectedTopic: String?,
+    availableTopics: List<String>,
+    onToggleDropdown: () -> Unit,
+    expanded: Boolean,
+    onTopicSelected: (String) -> Unit
 ) {
-    val topicsForSelectedSubSubject = remember(qState.selectedSubSubject) {
-        subSubjects.find { it.name == qState.selectedSubSubject }?.topics ?: emptyList()
-    }
-
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7FF)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(text = stringResource(id = R.string.question_label, displayIndex))
-
-            // --- 1. DROPDOWN: ALT DERS SEÇİMİ (Tarih, Coğrafya vb.) ---
-            var subSubjectExpanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = subSubjectExpanded,
-                onExpandedChange = { subSubjectExpanded = !subSubjectExpanded }
-            ) {
-                OutlinedTextField(
-                    value = qState.selectedSubSubject ?: "Ders Seçin",
-                    onValueChange = {}, readOnly = true,
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = subSubjectExpanded) }
-                )
-                ExposedDropdownMenu(expanded = subSubjectExpanded, onDismissRequest = { subSubjectExpanded = false }) {
-                    subSubjects.forEach { subSubject ->
-                        DropdownMenuItem(
-                            text = { Text(subSubject.name) },
-                            onClick = {
-                                onSubSubjectSelected(subSubject.name)
-                                subSubjectExpanded = false
-                            }
-                        )
-                    }
-                }
+            // Soru numarasını ve atanmış dersi göster
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = stringResource(id = R.string.question_label, displayIndex), fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "($assignedSubject)", color = Color.Gray, fontSize = 14.sp)
             }
 
-            // --- 2. DROPDOWN: KONU SEÇİMİ ---
-            ExposedDropdownMenuBox(
-                expanded = qState.isDropdownExpanded,
-                onExpandedChange = { if (qState.selectedSubSubject != null) onToggleDropdown() }
-            ) {
-                OutlinedTextField(
-                    value = qState.selectedTopic ?: "Konu Seçin",
-                    onValueChange = {}, readOnly = true,
-                    enabled = qState.selectedSubSubject != null,
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = qState.isDropdownExpanded) }
-                )
-                ExposedDropdownMenu(expanded = qState.isDropdownExpanded, onDismissRequest = { onToggleDropdown() }) {
-                    topicsForSelectedSubSubject.forEach { topic ->
+            // Konu seçimi için tek dropdown
+            Box(contentAlignment = Alignment.CenterEnd) {
+                Row(
+                    modifier = Modifier
+                        .clickable { onToggleDropdown() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = selectedTopic ?: stringResource(id = R.string.select_topic_placeholder),
+                        color = if (selectedTopic == null) Color.Gray else Color.Black
+                    )
+                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = null)
+                }
+
+                DropdownMenu(expanded = expanded, onDismissRequest = { onToggleDropdown() }) {
+                    availableTopics.forEach { topic ->
                         DropdownMenuItem(
-                            text = { Text(topic) },
+                            text = { Text(text = topic) },
                             onClick = { onTopicSelected(topic) }
                         )
                     }

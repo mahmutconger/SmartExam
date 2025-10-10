@@ -57,17 +57,45 @@ class GeneralInfoViewModel @Inject constructor(
 
             val subjectsList = when (currentState.examType) {
                 "TYT" -> listOf(
-                    mapOf("subjectName" to "Türkçe", "questionCount" to 40L),
-                    mapOf("subjectName" to "Sosyal Bilimler", "questionCount" to 20L),
-                    mapOf("subjectName" to "Temel Matematik", "questionCount" to 40L),
-                    mapOf("subjectName" to "Fen Bilimleri", "questionCount" to 20L)
+                    mapOf(
+                        "testName" to "Türkçe",
+                        "questionCount" to 40L,
+                        "subSubjects" to null
+                    ),
+                    mapOf(
+                        "testName" to "Sosyal Bilimler",
+                        "questionCount" to 20L,
+                        "subSubjects" to listOf(
+                            mapOf("subjectId" to "tarih", "name" to "Tarih", "questionCount" to 5L),
+                            mapOf("subjectId" to "cografya", "name" to "Coğrafya", "questionCount" to 5L),
+                            mapOf("subjectId" to "felsefe", "name" to "Felsefe", "questionCount" to 5L),
+                            mapOf("subjectId" to "din_kulturu", "name" to "Din Kültürü", "questionCount" to 5L),
+                            mapOf("subjectId" to "felsefe", "name" to "Felsefe", "questionCount" to 5L),
+                        )
+                    ),
+                    mapOf(
+                        "testName" to "Temel Matematik",
+                        "questionCount" to 40L,
+                        "subSubjects" to listOf(
+                            mapOf("subjectId" to "matematik", "name" to "Matematik", "questionCount" to 35L),
+                            mapOf("subjectId" to "geometri", "name" to "Geometri", "questionCount" to 5L)
+                        )
+                    ),
+                    mapOf(
+                        "testName" to "Fen Bilimleri",
+                        "questionCount" to 20L,
+                        "subSubjects" to listOf(
+                            mapOf("subjectId" to "fizik", "name" to "Fizik", "questionCount" to 7L),
+                            mapOf("subjectId" to "kimya", "name" to "Kimya", "questionCount" to 7L),
+                            mapOf("subjectId" to "biyoloji", "name" to "Biyoloji", "questionCount" to 6L)
+                        )
+                    )
                 )
                 "AYT" -> listOf(
-                    mapOf("subjectName" to "Türk Dili ve Edebiyatı-Sosyal Bilimler-1", "questionCount" to 40L),
-                    mapOf("subjectName" to "Sosyal Bilimler-2", "questionCount" to 40L),
-                    mapOf("subjectName" to "Matematik", "questionCount" to 40L),
-                    mapOf("subjectName" to "Fen Bilimleri", "questionCount" to 40L)
-                    // TODO AYT yapısı daha karmaşık olabilir (örn: Yabancı Dil), bu şimdilik bir başlangıç.
+                    mapOf("testName" to "Türk Dili ve Edebiyatı-Sosyal Bilimler-1", "questionCount" to 40L),
+                    mapOf("testName" to "Sosyal Bilimler-2", "questionCount" to 40L),
+                    mapOf("testName" to "AYT Matematik", "questionCount" to 40L),
+                    mapOf("testName" to "AYT Fen Bilimleri", "questionCount" to 40L)
                 )
                 "LGS" -> {
                     // TODO: LGS için ders yapısı eklenecek

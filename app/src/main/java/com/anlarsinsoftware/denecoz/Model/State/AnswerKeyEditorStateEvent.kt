@@ -2,6 +2,7 @@ package com.anlarsinsoftware.denecoz.Model.State
 
 data class QuestionState(
     val index: Int,
+    val assignedSubjectName: String? = null,
     val selectedAnswerIndex: Int? = null,
     val selectedSubSubject: String? = null,
     val selectedTopic: String? = null,

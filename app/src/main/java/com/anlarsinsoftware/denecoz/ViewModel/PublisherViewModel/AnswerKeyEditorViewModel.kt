@@ -3,6 +3,7 @@ package com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.anlarsinsoftware.denecoz.Model.Publisher.SubjectRule
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEditorEvent
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEditorNavigationEvent
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEditorUiState
@@ -32,36 +33,62 @@ class AnswerKeyEditorViewModel @Inject constructor(
     val navigationEvent = _navigationEvent.asSharedFlow()
 
     private val compositeTestRules = mapOf(
+        "Türkçe" to listOf(
+            SubjectRule("turkce", 40)
+        ),
         "Sosyal Bilimler" to listOf(
-            Pair("tarih", 5), Pair("cografya", 5), Pair("felsefe", 5), Pair("din_kulturu", 5)
+            SubjectRule("tarih", 5),
+            SubjectRule("cografya", 5),
+            SubjectRule("felsefe", 5),
+            SubjectRule("din_kulturu", 5, isAlternative = false), // Standart bölüm
+            SubjectRule("ek_felsefe", 5, isAlternative = true)     // Alternatif bölüm
         ),
         "Temel Matematik" to listOf(
-            Pair("matematik", 35), Pair("geometri", 5) // Tahmini
+            SubjectRule("matematik", 30), // Soru sayıları sizin tahmininize göre ayarlanabilir
+            SubjectRule("geometri", 10)
         ),
         "Fen Bilimleri" to listOf(
-            Pair("fizik", 7), Pair("kimya", 7), Pair("biyoloji", 6)
+            SubjectRule("fizik", 7),
+            SubjectRule("kimya", 7),
+            SubjectRule("biyoloji", 6)
         ),
+
+        // --- AYT Kuralları ---
         "Türk Dili ve Edebiyatı-Sosyal Bilimler-1" to listOf(
-            Pair("edebiyat", 24), Pair("tarih", 10), Pair("cografya", 6)
+            SubjectRule("edebiyat", 24),
+            SubjectRule("tarih", 10),
+            SubjectRule("cografya", 6)
         ),
         "Sosyal Bilimler-2" to listOf(
-            Pair("tarih", 11), Pair("cografya", 11), Pair("felsefe", 12), Pair("din_kulturu", 6)
+            SubjectRule("tarih", 11),
+            SubjectRule("cografya", 11),
+            SubjectRule("felsefe", 12),
+            SubjectRule("din_kulturu", 6, isAlternative = false),
+            SubjectRule("ek_felsefe", 6, isAlternative = true)
         ),
         "AYT Matematik" to listOf(
-            Pair("matematik", 35), Pair("geometri", 5) // Tahmini
+            SubjectRule("matematik", 30), // Tahmini
+            SubjectRule("geometri", 10)
         ),
         "AYT Fen Bilimleri" to listOf(
-            Pair("fizik", 14), Pair("kimya", 13), Pair("biyoloji", 13)
+            SubjectRule("fizik", 14),
+            SubjectRule("kimya", 13),
+            SubjectRule("biyoloji", 13)
         )
     )
 
-
     init {
         val examId = savedStateHandle.get<String>("examId")
-        val mode = EditorMode.valueOf(savedStateHandle.get<String>("mode") ?: EditorMode.ANSWER_KEY.name)
+        val mode =
+            EditorMode.valueOf(savedStateHandle.get<String>("mode") ?: EditorMode.ANSWER_KEY.name)
 
         if (examId == null) {
-            _uiState.update { it.copy(isLoading = false, errorMessage = "Deneme ID'si bulunamadı.") }
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    errorMessage = "Deneme ID'si bulunamadı."
+                )
+            }
         } else {
             _uiState.update { it.copy(examId = examId, mode = mode) }
             loadInitialData(examId)
@@ -73,7 +100,8 @@ class AnswerKeyEditorViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             val examDetailsResult = repository.getExamDetails(examId)
-            val curriculumResult = repository.getCurriculum(examDetailsResult.getOrNull()?.examType ?: "")
+            val curriculumResult =
+                repository.getCurriculum(examDetailsResult.getOrNull()?.examType ?: "")
 
             if (examDetailsResult.isSuccess && curriculumResult.isSuccess) {
                 val examDetails = examDetailsResult.getOrThrow()
@@ -88,35 +116,83 @@ class AnswerKeyEditorViewModel @Inject constructor(
                     val totalQuestionCount = (testMap["questionCount"] as? Long)?.toInt() ?: 0
 
                     if (compositeTestRules.containsKey(testName)) {
-                        val rules = compositeTestRules[testName]!!
-                        val subSubjectsForUI = rules.mapNotNull { (subjectId, _) ->
-                            allCurriculumSubjects.find { it.id == subjectId }
+                        val rules =
+                            compositeTestRules[testName]!! // rules artık List<SubjectRule> tipinde
+                        val subSubjectsForUI = rules.mapNotNull { rule ->
+                            allCurriculumSubjects.find { it.id == rule.subjectId }
+                                ?.let { subjectDef ->
+                                    // Eğer kural alternatif bir dersi işaret ediyorsa (Ek Felsefe gibi),
+                                    // arayüzde gösterilecek ismini de ona göre güncelleyelim.
+                                    if (rule.isAlternative) {
+                                        // "Ek Felsefe" gibi özel bir isim verelim. Bu isim UI'da aratılacak.
+                                        val displayName = when (testName) {
+                                            "Sosyal Bilimler-2" -> "Ek Felsefe"
+                                            else -> "Ek Felsefe"
+                                        }
+                                        subjectDef.copy(name = displayName)
+                                    } else {
+                                        subjectDef // Değilse, orijinal ders tanımını kullan
+                                    }
+                                }
                         }
 
-                        finalSubjectsForUI.add(SubjectDef(name = testName, totalQuestions = totalQuestionCount, topics = emptyList(), subSubjects = subSubjectsForUI))
+                        finalSubjectsForUI.add(
+                            SubjectDef(
+                                name = testName,
+                                totalQuestions = totalQuestionCount,
+                                topics = emptyList(),
+                                subSubjects = subSubjectsForUI
+                            )
+                        )
 
-                        // --- TODO ÇÖZÜLDÜ: Soruları alt derslere göre otomatik ata ---
-                        rules.forEach { (subjectId, questionCount) ->
-                            val subjectName = allCurriculumSubjects.find { it.id == subjectId }?.name ?: ""
-                            for (i in 1..questionCount) {
-                                questionsForUI.add(QuestionState(index = questionCounter + i, assignedSubjectName = subjectName))
+                        // Soruları alt derslere göre otomatik ata
+                        var currentQuestionInTest = 0
+                        rules.forEach { rule ->
+                            val subjectDef = subSubjectsForUI.find { it.id == rule.subjectId }
+                            val displayName = subjectDef?.name
+                                ?: "" // Artık subSubjectsForUI'dan doğru ismi alıyoruz.
+
+                            for (i in 1..rule.questionCount) {
+                                questionsForUI.add(
+                                    QuestionState(
+                                        index = questionCounter + i,
+                                        assignedSubjectName = displayName
+                                    )
+                                )
                             }
-                            questionCounter += questionCount
+                            questionCounter += rule.questionCount
                         }
                     } else {
-                        // Bu tekil bir test (örn: Türkçe)
-                        allCurriculumSubjects.find { it.name == testName }?.let { subjectDef ->
+                        val subjectId = testName.lowercase().replace(" ", "_")
+
+                        allCurriculumSubjects.find { it.id == subjectId }?.let { subjectDef ->
                             finalSubjectsForUI.add(subjectDef.copy(totalQuestions = totalQuestionCount))
                             for (i in 1..totalQuestionCount) {
-                                questionsForUI.add(QuestionState(index = questionCounter + i, assignedSubjectName = testName))
+                                questionsForUI.add(
+                                    QuestionState(
+                                        index = questionCounter + i,
+                                        assignedSubjectName = testName
+                                    )
+                                )
                             }
                             questionCounter += totalQuestionCount
                         }
                     }
                 }
-                _uiState.update { it.copy(isLoading = false, subjects = finalSubjectsForUI, questions = questionsForUI) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        subjects = finalSubjectsForUI,
+                        questions = questionsForUI
+                    )
+                }
             } else {
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Veriler yüklenemedi.") }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Veriler yüklenemedi."
+                    )
+                }
             }
         }
     }
@@ -140,16 +216,24 @@ class AnswerKeyEditorViewModel @Inject constructor(
             is AnswerKeyEditorEvent.OnAnswerSelected -> {
                 updateQuestionState(event.questionIndex) { it.copy(selectedAnswerIndex = event.answerIndex) }
             }
+
             is AnswerKeyEditorEvent.OnTopicSelected -> {
-                updateQuestionState(event.questionIndex) { it.copy(selectedTopic = event.topic, isDropdownExpanded = false) }
+                updateQuestionState(event.questionIndex) {
+                    it.copy(
+                        selectedTopic = event.topic,
+                        isDropdownExpanded = false
+                    )
+                }
                 recalculateAssignedCounts()
             }
+
             is AnswerKeyEditorEvent.OnSubSubjectSelected -> {
                 // Soru state'ini güncelle: seçilen alt dersi kaydet ve konuyu sıfırla.
                 updateQuestionState(event.questionIndex) {
                     it.copy(selectedSubSubject = event.subSubject, selectedTopic = null)
                 }
             }
+
             is AnswerKeyEditorEvent.OnSubjectToggled -> {
                 _uiState.update { currentState ->
                     val updatedSubjects = currentState.subjects.map { subject ->
@@ -162,9 +246,11 @@ class AnswerKeyEditorViewModel @Inject constructor(
                     currentState.copy(subjects = updatedSubjects)
                 }
             }
+
             is AnswerKeyEditorEvent.OnToggleDropdown -> {
                 updateQuestionState(event.questionIndex) { it.copy(isDropdownExpanded = event.isExpanded) }
             }
+
             is AnswerKeyEditorEvent.OnConfirmClicked -> saveData()
         }
     }
@@ -217,7 +303,7 @@ class AnswerKeyEditorViewModel @Inject constructor(
 
     private fun validateForm() {
         val state = _uiState.value
-        val allAnswered = when(state.mode) {
+        val allAnswered = when (state.mode) {
             EditorMode.ANSWER_KEY -> state.questions.all { it.selectedAnswerIndex != null }
             EditorMode.TOPIC_DISTRIBUTION -> state.questions.all { it.selectedTopic != null }
         }
@@ -230,6 +316,8 @@ class AnswerKeyEditorViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            // Repository'ye veri kaydetme kısmı aynı kalıyor.
             val result = when (state.mode) {
                 EditorMode.ANSWER_KEY -> {
                     val answers = state.questions.associate {
@@ -238,18 +326,31 @@ class AnswerKeyEditorViewModel @Inject constructor(
                     repository.saveAnswerKey(state.examId, "A", answers)
                 }
                 EditorMode.TOPIC_DISTRIBUTION -> {
-                    val topics = state.questions.associate {
-                        it.index.toString() to (it.selectedTopic ?: "")
-                    }
-                    // repository.saveTopicDistribution(...) çağrısı yapılacak
-                    Result.success(Unit) // Geçici
+                    val topics = state.questions
+                        .filter { it.selectedTopic != null }
+                        .associate {
+                            it.index.toString() to (it.selectedTopic!!)
+                        }
+                    repository.saveTopicDistribution(state.examId, "A", topics)
                 }
             }
 
             if (result.isSuccess) {
-                _navigationEvent.emit(AnswerKeyEditorNavigationEvent.NavigateToPreview(state.examId))
+                when (state.mode) {
+                    EditorMode.ANSWER_KEY -> {
+                        _navigationEvent.emit(AnswerKeyEditorNavigationEvent.NavigateBack)
+                    }
+                    EditorMode.TOPIC_DISTRIBUTION -> {
+                        _navigationEvent.emit(AnswerKeyEditorNavigationEvent.NavigateToPreview(state.examId))
+                    }
+                }
             } else {
-                _uiState.update { it.copy(isLoading = false, errorMessage = result.exceptionOrNull()?.message) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = result.exceptionOrNull()?.message
+                    )
+                }
             }
         }
     }

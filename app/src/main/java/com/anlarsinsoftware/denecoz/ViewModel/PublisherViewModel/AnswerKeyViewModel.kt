@@ -3,13 +3,10 @@ package com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEvent
+import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEvent // Event dosyasını da güncellememiz gerekecek
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyNavigationEvent
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyUiState
 import com.anlarsinsoftware.denecoz.Model.State.EditorMode
-import com.anlarsinsoftware.denecoz.Model.State.FileType
-import com.anlarsinsoftware.denecoz.Model.State.TabOption
-import com.anlarsinsoftware.denecoz.Model.State.UploadedFile
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -32,59 +29,61 @@ class AnswerKeyViewModel @Inject constructor(
     private val _navigationEvent = MutableSharedFlow<AnswerKeyNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
+    private val examId: String? = savedStateHandle.get<String>("examId")
+
     init {
-        val examId = savedStateHandle.get<String>("examId")
+        loadExamStatus()
+    }
+
+    fun loadExamStatus() {
         if (examId == null) {
             _uiState.update { it.copy(errorMessage = "Hata: Deneme ID'si bulunamadı.") }
-        } else {
-            _uiState.update { it.copy(examId = examId) }
-        }
-    }
-
-    fun onEvent(event: AnswerKeyEvent) {
-        when (event) {
-            is AnswerKeyEvent.OnTabSelected -> _uiState.update { it.copy(selectedTab = event.tab) }
-            is AnswerKeyEvent.OnFileSelected -> _uiState.update { it.copy(uploadedFile = UploadedFile(event.fileName, event.fileType, event.uri)) }
-            is AnswerKeyEvent.OnManualEntrySelected -> _uiState.update { it.copy(uploadedFile = UploadedFile(
-                "Manuel Giriş",
-                FileType.MANUAL,
-                null
-            )
-            ) }
-            is AnswerKeyEvent.OnChangeFileClicked -> _uiState.update { it.copy(uploadedFile = null) }
-            is AnswerKeyEvent.OnContinueClicked -> handleContinue()
-        }
-    }
-
-    private fun handleContinue() {
-        val currentState = _uiState.value
-        val examId = currentState.examId ?: return
-
-        if (currentState.uploadedFile == null) {
-            _uiState.update { it.copy(errorMessage = "Lütfen bir yöntem seçin.") }
             return
         }
 
         viewModelScope.launch {
-            when (currentState.uploadedFile.type) {
-                FileType.MANUAL -> {
-                    val mode = if (currentState.selectedTab == TabOption.ANSWER_KEY) {
-                        EditorMode.ANSWER_KEY
-                    } else {
-                        EditorMode.TOPIC_DISTRIBUTION
-                    }
-                    _navigationEvent.emit(AnswerKeyNavigationEvent.NavigateToEditor(examId, mode))
-                }
-                FileType.EXCEL, FileType.PDF -> {
-                    // TODO: Dosya işleme mantığı
-                    // Şimdilik sadece bir mesaj gösterip bir sonraki adıma geçebiliriz
-                    // veya Repository'deki dosya işleme fonksiyonunu çağırabiliriz.
+            _uiState.update { it.copy(isLoading = true) }
+            // Repository'ye ekleyeceğimiz yeni fonksiyonu çağırıyoruz
+            val statusResult = repository.getExamStatus(examId)
 
-                    _uiState.update { it.copy(isLoading = true) }
-                    // repository.processAnswerKeyFile(...)
-                    _uiState.update { it.copy(isLoading = false) }
+            statusResult.onSuccess { status ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        examId = examId,
+                        isAnswerKeyCreated = status.hasAnswerKey,
+                        isTopicDistributionCreated = status.hasTopicDistribution
+                    )
                 }
+            }.onFailure { exception ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
             }
+        }
+    }
+
+    // Olay (Event) yönetimini de yeni akışa göre güncelliyoruz.
+    // Önce AnswerKeyEvent dosyasını da güncellemelisin.
+    fun onEvent(event: AnswerKeyEvent) {
+        when (event) {
+            is AnswerKeyEvent.OnNavigateToAnswerKeyEditor -> navigateToEditor(EditorMode.ANSWER_KEY)
+            is AnswerKeyEvent.OnNavigateToTopicEditor -> navigateToEditor(EditorMode.TOPIC_DISTRIBUTION)
+            is AnswerKeyEvent.OnNavigateToPreview -> navigateToPreview()
+        }
+    }
+
+    private fun navigateToEditor(mode: EditorMode) {
+        examId?.let {
+            viewModelScope.launch {
+                _navigationEvent.emit(AnswerKeyNavigationEvent.NavigateToEditor(it, mode))
+            }
+        }
+    }
+
+    private fun navigateToPreview() {
+        // Bu fonksiyonu Ön İzleme ekranına geçiş için kullanacağız.
+        // Şimdilik boş kalabilir veya direkt navigasyon emit edebilir.
+        examId?.let {
+            // _navigationEvent.emit(AnswerKeyNavigationEvent.NavigateToPreview(it))
         }
     }
 }

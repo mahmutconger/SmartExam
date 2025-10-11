@@ -54,6 +54,9 @@ fun AnswerKeyEditorScreen(
                 is AnswerKeyEditorNavigationEvent.NavigateToPreview -> {
                     navController.navigate(Screen.PreviewScreen.createRoute(event.examId))
                 }
+                is AnswerKeyEditorNavigationEvent.NavigateBack -> {
+                    navController.popBackStack()
+                }
             }
         }
     }

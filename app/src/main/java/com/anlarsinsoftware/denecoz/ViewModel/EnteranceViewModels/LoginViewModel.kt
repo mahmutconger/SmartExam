@@ -45,13 +45,18 @@ class LoginViewModel @Inject constructor(
     // LoginViewModel.kt içinde
     fun moveEdebiyatData() {
         viewModelScope.launch {
-            Log.d("Migration", "Geometri taşıma işlemi başlıyor...")
-            examRepository.moveDocument()
+            val oldCollectionPath = "curriculum/TYT/subjects"
+            val oldDocId = "felsefe"
+            val newCollectionPath = "curriculum/TYT/subjects"
+            val newDocId = "ek_felsefe"
+
+            Log.d("Migration", "TYT Taşıma işlemi başlıyor...")
+            examRepository.moveDocument(oldCollectionPath, oldDocId, newCollectionPath, newDocId)
                 .onSuccess {
-                    Log.d("Migration", "Geometri taşıma işlemi BAŞARILI!")
+                    Log.d("Migration", "Taşıma işlemi BAŞARILI!")
                 }
                 .onFailure { exception ->
-                    Log.e("Migration", "Geometri taşıma işlemi BAŞARISIZ!", exception)
+                    Log.e("Migration", "Taşıma işlemi BAŞARISIZ!", exception)
                 }
         }
     }

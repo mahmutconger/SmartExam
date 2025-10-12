@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -15,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -58,15 +62,18 @@ fun AnswerKeyScreen(
         }
     }
 
-    // Navigasyon olaylarını dinliyoruz
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
             when(event) {
                 is AnswerKeyNavigationEvent.NavigateToEditor -> {
-                    navController.navigate(Screen.AnswerKeyEditorScreen.createRoute(event.examId, event.mode))
+                    navController.navigate(
+                        Screen.AnswerKeyEditorScreen.createRoute(
+                            event.examId,
+                            event.mode,
+                            event.bookletName
+                        )
+                    )
                 }
-                // AnswerKeyEditorScreen'den geri dönme olayını da buraya ekleyebiliriz (opsiyonel)
-                // is AnswerKeyNavigationEvent.NavigateBack -> navController.popBackStack()
             }
         }
     }
@@ -117,7 +124,7 @@ fun AnswerKeyScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                LazyColumn(modifier = Modifier.weight(1f)) { // Kaydırılabilir olması için LazyColumn
+                LazyColumn(modifier = Modifier.weight(1f)) {
 
                     // Mevcut kitapçıklar için döngü oluştur
                     val sortedBooklets = uiState.bookletStatus.keys.sorted()
@@ -162,6 +169,23 @@ fun AnswerKeyScreen(
                             onClick = { viewModel.onEvent(AnswerKeyEvent.OnAddNewBooklet) }
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { viewModel.onEvent(AnswerKeyEvent.OnNavigateToPreview) },
+                    enabled = uiState.bookletStatus.isNotEmpty() && uiState.bookletStatus.values.all {
+                        it.hasAnswerKey && it.hasTopicDistribution
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Ön İzleme & Yayınla")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null)
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

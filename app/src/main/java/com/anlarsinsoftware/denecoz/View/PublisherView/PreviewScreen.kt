@@ -73,23 +73,83 @@ fun PreviewScreen(
                     .padding(padding)
                     .padding(16.dp)
             ) {
+                val groupedQuestions = remember(uiState.examDetails, uiState.topicDistribution) {
+                    val questionMap = mutableMapOf<String, MutableList<Pair<Int, String>>>()
+                    var questionCounter = 1
+                    uiState.examDetails?.subjects?.forEach { test ->
+                        val testName = test["testName"] as? String ?: "Bilinmeyen Test"
+                        val questionCount = (test["questionCount"] as? Long)?.toInt() ?: 0
+
+                        val questionsForTest = mutableListOf<Pair<Int, String>>()
+                        for (i in questionCounter until questionCounter + questionCount) {
+                            uiState.topicDistribution[i.toString()]?.let { topic ->
+                                questionsForTest.add(Pair(i, topic))
+                            }
+                        }
+                        questionMap[testName] = questionsForTest
+                        questionCounter += questionCount
+                    }
+                    questionMap
+                }
+
                 LazyColumn(modifier = Modifier.weight(1f)) {
+                    // 1. Genel Bilgiler Bölümü (Mevcut kod)
                     item {
                         PreviewSection(title = "Genel Bilgiler") {
                             Text("Deneme Adı: ${uiState.examDetails?.name ?: "..."}", fontWeight = FontWeight.SemiBold)
-                            // Diğer genel bilgileri de buraya ekleyebilirsiniz...
+                            Text("Deneme Türü: ${uiState.examDetails?.examType ?: "..."}")
+                            InfoRow("Kitapçık Türü", uiState.examDetails?.bookletType)
+                            InfoRow("Yayın Tarihi", uiState.examDetails?.publicationDate.toFormattedDate())
                         }
                     }
+
+                    // 2. Cevap Anahtarı Bölümü (Mevcut kod)
                     item {
                         PreviewSection(title = "Cevap Anahtarı") {
+                            // Cevapları 2 veya 3 sütunlu bir grid'de göstermek daha okunaklı olabilir.
+                            // Örnek olarak basit bir liste:
                             val sortedKeys = uiState.answerKey.keys.sortedBy { it.toInt() }
                             sortedKeys.forEach { key ->
-                                Text("$key - ${uiState.answerKey[key]}")
+                                Text("$key. Soru - ${uiState.answerKey[key]}")
                             }
                         }
                     }
 
-                    // TODO: Konu Dağılımı için de benzer bir bölüm eklenebilir.
+                    item {
+                        PreviewSection(title = "Konu Dağılımı") {
+                            if (groupedQuestions.isEmpty()) {
+                                Text("Konu dağılımı verisi bulunamadı.")
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    groupedQuestions.forEach { (testName, questions) ->
+                                        // Ders başlığı
+                                        Text(
+                                            text = testName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        // O derse ait sorular ve konular
+                                        Column(
+                                            modifier = Modifier.padding(start = 8.dp, top = 4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            questions.forEach { (qNumber, topic) ->
+                                                Row {
+                                                    Text(
+                                                        text = "$qNumber. Soru: ",
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        modifier = Modifier.width(80.dp)
+                                                    )
+                                                    Text(text = topic)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 Button(
                     onClick = { viewModel.onEvent(PreviewEvent.OnPublishClicked) },
@@ -108,6 +168,41 @@ fun PreviewScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * Tarih string'ini (örn: "2025-10-11") kullanıcı dostu bir formata çevirir.
+ * Örnek Çıktı: "11 Ekim 2025"
+ */
+private fun String?.toFormattedDate(): String {
+    if (this.isNullOrBlank()) return "Belirtilmemiş"
+    return try {
+        val date = java.time.LocalDate.parse(this)
+        val formatter = java.time.format.DateTimeFormatter
+            .ofPattern("dd MMMM yyyy", java.util.Locale("tr")) // Türkçe ay isimleri için
+        date.format(formatter)
+    } catch (e: Exception) {
+        this
+    }
+}
+
+/**
+ * "Başlık: Değer" formatında bir satır oluşturan basit bir Composable.
+ */
+@Composable
+private fun InfoRow(label: String, value: String?) {
+    Row {
+        Text(
+            text = "$label: ",
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = value ?: "...",
+            fontWeight = FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

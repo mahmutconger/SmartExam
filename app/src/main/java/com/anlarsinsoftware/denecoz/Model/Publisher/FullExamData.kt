@@ -4,6 +4,6 @@ import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamDetails
 
 data class FullExamData(
     val details: ExamDetails,
-    val answerKey: Map<String, String>,
-    val topicDistribution: Map<String, String>
+    val answerKeys: Map<String, Map<String, String>>,
+    val topicDistributions: Map<String, Map<String, String>>
 )

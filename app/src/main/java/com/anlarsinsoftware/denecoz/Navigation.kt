@@ -28,8 +28,9 @@ sealed class Screen(val route: String) {
     object AnswerKeyScreen : Screen("answer_key_screen/{examId}") {
         fun createRoute(examId: String) = "answer_key_screen/$examId"
     }
-    object AnswerKeyEditorScreen : Screen("answer_key_editor_screen/{examId}/{mode}") {
-        fun createRoute(examId: String, mode: EditorMode) = "answer_key_editor_screen/$examId/${mode.name}"
+    object AnswerKeyEditorScreen : Screen("answer_key_editor_screen/{examId}/{mode}/{bookletName}") {
+        fun createRoute(examId: String, mode: EditorMode, bookletName: String) =
+            "answer_key_editor_screen/$examId/${mode.name}/$bookletName"
     }
     object PreviewScreen : Screen("preview_screen/{examId}") {
         fun createRoute(examId: String) = "preview_screen/$examId"
@@ -83,7 +84,8 @@ fun AppNavigation() {
             route = Screen.AnswerKeyEditorScreen.route,
             arguments = listOf(
                 navArgument("examId") { type = NavType.StringType },
-                navArgument("mode") { type = NavType.StringType }
+                navArgument("mode") { type = NavType.StringType },
+                navArgument("bookletName") { type = NavType.StringType }
             )
         ) {
             AnswerKeyEditorScreen(navController = navController)

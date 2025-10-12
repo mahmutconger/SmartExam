@@ -67,12 +67,11 @@ fun AnswerKeyScreen(
             when(event) {
                 is AnswerKeyNavigationEvent.NavigateToEditor -> {
                     navController.navigate(
-                        Screen.AnswerKeyEditorScreen.createRoute(
-                            event.examId,
-                            event.mode,
-                            event.bookletName
-                        )
+                        Screen.AnswerKeyEditorScreen.createRoute(event.examId, event.mode, event.bookletName)
                     )
+                }
+                is AnswerKeyNavigationEvent.NavigateToPreview -> {
+                    navController.navigate(Screen.PreviewScreen.createRoute(event.examId))
                 }
             }
         }

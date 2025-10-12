@@ -32,5 +32,8 @@ sealed class AnswerKeyNavigationEvent {
         val mode: EditorMode,
         val bookletName: String
     ) : AnswerKeyNavigationEvent()
+
+    data class NavigateToPreview(val examId: String) : AnswerKeyNavigationEvent()
+
 }
 enum class EditorMode { ANSWER_KEY, TOPIC_DISTRIBUTION }

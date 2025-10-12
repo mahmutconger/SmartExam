@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEvent // Event dosyasını da güncellememiz gerekecek
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyNavigationEvent
 import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyUiState
+import com.anlarsinsoftware.denecoz.Model.State.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.EditorMode
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,7 +44,6 @@ class AnswerKeyViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            // Repository'ye ekleyeceğimiz yeni fonksiyonu çağırıyoruz
             val statusResult = repository.getExamStatus(examId)
 
             statusResult.onSuccess { status ->
@@ -51,8 +51,7 @@ class AnswerKeyViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         examId = examId,
-                        isAnswerKeyCreated = status.hasAnswerKey,
-                        isTopicDistributionCreated = status.hasTopicDistribution
+                        bookletStatus = status
                     )
                 }
             }.onFailure { exception ->
@@ -61,29 +60,51 @@ class AnswerKeyViewModel @Inject constructor(
         }
     }
 
-    // Olay (Event) yönetimini de yeni akışa göre güncelliyoruz.
-    // Önce AnswerKeyEvent dosyasını da güncellemelisin.
     fun onEvent(event: AnswerKeyEvent) {
         when (event) {
-            is AnswerKeyEvent.OnNavigateToAnswerKeyEditor -> navigateToEditor(EditorMode.ANSWER_KEY)
-            is AnswerKeyEvent.OnNavigateToTopicEditor -> navigateToEditor(EditorMode.TOPIC_DISTRIBUTION)
+            is AnswerKeyEvent.OnNavigateToAnswerKeyEditor -> navigateToEditor(event.bookletName, EditorMode.ANSWER_KEY)
+            is AnswerKeyEvent.OnNavigateToTopicEditor -> navigateToEditor(event.bookletName, EditorMode.TOPIC_DISTRIBUTION)
+            is AnswerKeyEvent.OnAddNewBooklet -> addNewBooklet()
             is AnswerKeyEvent.OnNavigateToPreview -> navigateToPreview()
         }
     }
 
-    private fun navigateToEditor(mode: EditorMode) {
+    private fun addNewBooklet() {
+        val currentStatus = _uiState.value.bookletStatus
+        val nextBookletChar = ('A'.code + currentStatus.size).toChar()
+        val nextBookletName = nextBookletChar.toString()
+
+        viewModelScope.launch {
+            examId?.let { id ->
+                _uiState.update { it.copy(isLoading = true) }
+                // YENİ: Repository fonksiyonunu çağırıyoruz
+                repository.addNewBooklet(id, nextBookletName)
+                    .onSuccess {
+                        // Başarılı olursa, en güncel durumu veritabanından tekrar çekelim.
+                        // Bu, state'imizin her zaman doğru olmasını garanti eder.
+                        loadExamStatus()
+                    }
+                    .onFailure { exception ->
+                        _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
+                    }
+            }
+        }
+    }
+
+
+    private fun navigateToEditor(bookletName: String, mode: EditorMode) {
         examId?.let {
             viewModelScope.launch {
-                _navigationEvent.emit(AnswerKeyNavigationEvent.NavigateToEditor(it, mode))
+                _navigationEvent.emit(AnswerKeyNavigationEvent.NavigateToEditor(it, mode, bookletName))
             }
         }
     }
 
     private fun navigateToPreview() {
-        // Bu fonksiyonu Ön İzleme ekranına geçiş için kullanacağız.
-        // Şimdilik boş kalabilir veya direkt navigasyon emit edebilir.
         examId?.let {
-            // _navigationEvent.emit(AnswerKeyNavigationEvent.NavigateToPreview(it))
+            viewModelScope.launch {
+                _navigationEvent.emit(AnswerKeyNavigationEvent.NavigateToPreview(it))
+            }
         }
     }
 }

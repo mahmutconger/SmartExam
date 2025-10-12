@@ -37,5 +37,5 @@ interface ExamRepository {
     suspend fun getCurriculum(examType: String): Result<List<SubjectDef>>
     suspend fun moveDocument(oldCollectionPath: String, oldDocId: String, newCollectionPath: String, newDocId: String): Result<Unit>
     suspend fun getExamStatus(examId: String): Result<Map<String, BookletStatus>>
-
+    suspend fun addNewBooklet(examId: String, bookletName: String): Result<Unit>
 }

@@ -7,6 +7,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -99,37 +100,43 @@ class ExamRepositoryImpl @Inject constructor(
 
     override suspend fun getFullExamForPreview(examId: String): Result<FullExamData> = coroutineScope {
         try {
-            val examDetailsDeferred = async { getExamDetails(examId) }
-            val answerKeyDeferred = async {
-                examsCollection.document(examId)
-                    .collection("booklets").document("A")
-                    .collection("answerKey")
-                    .get().await()
+            val examDocSnapshot = examsCollection.document(examId).get().await()
+            val examDetails = examDocSnapshot.toObject(ExamDetails::class.java)
+                ?: return@coroutineScope Result.failure(Exception("Deneme detayları bulunamadı."))
+
+            val bookletStatusMap = examDocSnapshot.get("bookletStatus") as? Map<String, Any>
+            val bookletNames = bookletStatusMap?.keys?.toList() ?: emptyList()
+
+            val answerKeyDeferreds = bookletNames.associateWith { bookletName ->
+                async(Dispatchers.IO) {
+                    examsCollection.document(examId)
+                        .collection("booklets").document(bookletName)
+                        .collection("answerKey").get().await()
+                }
             }
-            val topicDistributionDeferred = async {
-                examsCollection.document(examId)
-                    .collection("booklets").document("A")
-                    .collection("topicDistribution")
-                    .get().await()
+            val topicDistDeferreds = bookletNames.associateWith { bookletName ->
+                async(Dispatchers.IO) {
+                    examsCollection.document(examId)
+                        .collection("booklets").document(bookletName)
+                        .collection("topicDistribution").get().await()
+                }
             }
 
-            val examDetailsResult = examDetailsDeferred.await()
-            val answerKeySnapshot = answerKeyDeferred.await()
-            val topicDistributionSnapshot = topicDistributionDeferred.await()
-
-            if (examDetailsResult.isFailure) {
-                Result.failure(examDetailsResult.exceptionOrNull() ?: Exception("Deneme detayları alınamadı."))
-            } else {
-                val answerKeyMap = answerKeySnapshot.documents.associate { it.id to (it.getString("correctAnswer") ?: "") }
-                val topicDistributionMap = topicDistributionSnapshot.documents.associate { it.id to (it.getString("topicId") ?: "") }
-                val fullExamData = FullExamData(
-                    details = examDetailsResult.getOrThrow(),
-                    answerKey = answerKeyMap,
-                    topicDistribution = topicDistributionMap
-                )
-
-                Result.success(fullExamData)
+            val answerKeys = answerKeyDeferreds.mapValues { (_, deferred) ->
+                deferred.await().documents.associate { it.id to (it.getString("correctAnswer") ?: "") }
             }
+            val topicDistributions = topicDistDeferreds.mapValues { (_, deferred) ->
+                deferred.await().documents.associate { it.id to (it.getString("topicId") ?: "") }
+            }
+
+            val fullExamData = FullExamData(
+                details = examDetails,
+                answerKeys = answerKeys,
+                topicDistributions = topicDistributions
+            )
+
+            Result.success(fullExamData)
+
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -217,6 +224,23 @@ class ExamRepositoryImpl @Inject constructor(
             val fieldToUpdate = "bookletStatus.$booklet.hasTopicDistribution"
             examsCollection.document(examId).update(fieldToUpdate, true).await()
 
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun addNewBooklet(examId: String, bookletName: String): Result<Unit> {
+        return try {
+            val examDocRef = examsCollection.document(examId)
+            // Yeni kitapçık için başlangıç durumunu içeren bir harita oluştur
+            val newBookletStatus = mapOf(
+                "hasAnswerKey" to false,
+                "hasTopicDistribution" to false
+            )
+            // Dot notation ile 'bookletStatus' haritasına yeni bir alan ekle
+            val fieldToUpdate = "bookletStatus.$bookletName"
+            examDocRef.update(fieldToUpdate, newBookletStatus).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

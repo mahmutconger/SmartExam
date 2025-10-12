@@ -60,8 +60,6 @@ fun GeneralInfoScreen(
     val datePickerState = rememberDatePickerState()
     var showDatePicker by remember { mutableStateOf(false) }
 
-    var bookletTypeExpanded by remember { mutableStateOf(false) }
-    val bookletTypes = listOf("A", "B")
 
     var examTypeExpanded by remember { mutableStateOf(false) }
     val examTypes = listOf("TYT", "AYT", "LGS")
@@ -121,42 +119,32 @@ fun GeneralInfoScreen(
 
             FormField(
                 value = uiState.publicationDate,
-                onValueChange = { viewModel.onEvent(GeneralInfoEvent.OnPublicationDateSelected(it)) },
-                placeholder = "gg/AA/yyyy",
+                onValueChange = { /* enabled=false olduğu için zaten çalışmayacak */ },
+                placeholder = "Yayın Tarihi Seçin",
                 leading = { Icon(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null) },
-                readOnly = false
+
+                // readOnly yerine enabled=false kullanıyoruz.
+                // Bu, tıklanabilirliği etkilemez ama metin alanını tamamen pasif hale getirir.
+                enabled = false,
+
+                // Tıklama olayını doğrudan FormField'ın modifier'ına ekliyoruz.
+                modifier = Modifier.clickable {
+                    showDatePicker = true
+                    Log.d("DatePicker", "Tarih alanı tıklandı, showDatePicker true olmalı.") // Hata ayıklama için Log
+                },
+
+                // enabled=false olduğunda renklerin soluklaşmasını engellemek için özel renkler
+                colors = TextFieldDefaults.colors(
+                    disabledContainerColor = Color(0xFFF6F8FB),
+                    disabledIndicatorColor = Color.Transparent,
+                    disabledLeadingIconColor = Color(0xFFB0B7C3),
+                    disabledTextColor = if (uiState.publicationDate.isNotBlank()) Color.Black else Color(0xFF9AA0B4)
+                )
             )
 
+
             Spacer(Modifier.height(12.dp))
 
-            ExposedDropdownMenuBox(
-                expanded = bookletTypeExpanded,
-                onExpandedChange = { bookletTypeExpanded = !bookletTypeExpanded }
-            ) {
-                FormField(
-                    value = uiState.bookletType,
-                    onValueChange = { },
-                    modifier = Modifier.menuAnchor(),
-                    placeholder =  stringResource(id = R.string.bookletTypePlaceholder),
-                    leading = { Icon( painter = painterResource(id = R.drawable.ic_analysis), contentDescription = null) },
-                    readOnly = true,
-                )
-                ExposedDropdownMenu(
-                    expanded = bookletTypeExpanded,
-                    onDismissRequest = { bookletTypeExpanded = false }
-                ) {
-                    bookletTypes.forEach { type ->
-                        DropdownMenuItem(
-                            text = { Text(type) },
-                            onClick = {
-                                viewModel.onEvent(GeneralInfoEvent.OnBookletTypeSelected(type))
-                                bookletTypeExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
             ExposedDropdownMenuBox(
                 expanded = examTypeExpanded,
                 onExpandedChange = { examTypeExpanded = !examTypeExpanded }
@@ -209,17 +197,17 @@ fun GeneralInfoScreen(
         }
     }
     if (showDatePicker) {
-        Log.d("GeneralInfoScreen", "DatePickerDialog açılıyor...")
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showDatePicker = false
-                        val selectedDateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
-                        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-                        val formattedDate = sdf.format(Date(selectedDateMillis))
-                        viewModel.onEvent(GeneralInfoEvent.OnPublicationDateSelected(formattedDate))
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                            val formattedDate = sdf.format(Date(millis))
+                            viewModel.onEvent(GeneralInfoEvent.OnPublicationDateSelected(formattedDate))
+                        }
                     }
                 ) { Text("Tamam") }
             },
@@ -300,12 +288,26 @@ fun FormField(
     placeholder: String,
     modifier: Modifier = Modifier,
     leading: @Composable (() -> Unit)? = null,
-    readOnly: Boolean = false
+    readOnly: Boolean = false,
+    enabled: Boolean = true,
+    colors: TextFieldColors = TextFieldDefaults.colors(
+        focusedContainerColor = Color(0xFFF6F8FB),
+        unfocusedContainerColor = Color(0xFFF6F8FB),
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        focusedLeadingIconColor = Color(0xFF4A4A4A),
+        unfocusedLeadingIconColor = Color(0xFFB0B7C3),
+        disabledContainerColor = Color(0xFFF6F8FB),
+        disabledIndicatorColor = Color.Transparent,
+        disabledLeadingIconColor = Color(0xFFB0B7C3),
+        disabledTextColor = Color.Black
+    )
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         readOnly = readOnly,
+        enabled = enabled,
         placeholder = { Text(placeholder, color = Color(0xFF9AA0B4)) },
         leadingIcon = if (leading != null) ({
             Box(
@@ -320,14 +322,7 @@ fun FormField(
             .fillMaxWidth()
             .height(52.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color(0xFFF6F8FB),
-            unfocusedContainerColor = Color(0xFFF6F8FB),
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            focusedLeadingIconColor = Color(0xFF4A4A4A),
-            unfocusedLeadingIconColor = Color(0xFFB0B7C3)
-        )
+        colors = colors
     )
 }
 

@@ -7,24 +7,30 @@ enum class FileType { PDF, EXCEL, MANUAL }
 
 data class UploadedFile(val name: String, val type: FileType, val uri: Uri?)
 
+data class BookletStatus(
+    val hasAnswerKey: Boolean = false,
+    val hasTopicDistribution: Boolean = false
+)
+
 data class AnswerKeyUiState(
     val examId: String? = null,
-    val selectedTab: TabOption = TabOption.ANSWER_KEY,
-    val uploadedFile: UploadedFile? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val bookletStatus: Map<String, BookletStatus> = emptyMap()
 )
 
 sealed class AnswerKeyEvent {
-    data class OnTabSelected(val tab: TabOption) : AnswerKeyEvent()
-    data class OnFileSelected(val uri: Uri?, val fileName: String, val fileType: FileType) : AnswerKeyEvent()
-    object OnManualEntrySelected : AnswerKeyEvent()
-    object OnChangeFileClicked : AnswerKeyEvent()
-    object OnContinueClicked : AnswerKeyEvent()
+    data class OnNavigateToAnswerKeyEditor(val bookletName: String) : AnswerKeyEvent()
+    data class OnNavigateToTopicEditor(val bookletName: String) : AnswerKeyEvent()
+    object OnNavigateToPreview : AnswerKeyEvent()
+    object OnAddNewBooklet : AnswerKeyEvent()
 }
 
 sealed class AnswerKeyNavigationEvent {
-    data class NavigateToEditor(val examId: String, val mode: EditorMode) : AnswerKeyNavigationEvent()
+    data class NavigateToEditor(
+        val examId: String,
+        val mode: EditorMode,
+        val bookletName: String
+    ) : AnswerKeyNavigationEvent()
 }
-
 enum class EditorMode { ANSWER_KEY, TOPIC_DISTRIBUTION }

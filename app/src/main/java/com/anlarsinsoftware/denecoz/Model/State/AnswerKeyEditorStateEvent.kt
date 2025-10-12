@@ -39,5 +39,5 @@ sealed class AnswerKeyEditorEvent {
 }
 sealed class AnswerKeyEditorNavigationEvent {
     data class NavigateToPreview(val examId: String) : AnswerKeyEditorNavigationEvent()
+    object NavigateBack : AnswerKeyEditorNavigationEvent()
 }
-

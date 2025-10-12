@@ -77,6 +77,8 @@ class AnswerKeyEditorViewModel @Inject constructor(
         )
     )
 
+    private val bookletName: String = savedStateHandle.get<String>("bookletName")!!
+
     init {
         val examId = savedStateHandle.get<String>("examId")
         val mode =
@@ -266,20 +268,6 @@ class AnswerKeyEditorViewModel @Inject constructor(
         validateForm()
     }
 
-    /*
-    private fun recalculateAssignedCounts() {
-        _uiState.update { currentState ->
-            val updatedSubjects = currentState.subjects.map { subject ->
-                val count = currentState.questions.count { q ->
-                    subject.topics.contains(q.selectedTopic)
-                }
-                subject.copy(assignedCount = count)
-            }
-            currentState.copy(subjects = updatedSubjects)
-        }
-    }
-     */
-
     private fun recalculateAssignedCounts() {
         _uiState.update { currentState ->
             val updatedSubjects = currentState.subjects.map { subject ->
@@ -317,13 +305,12 @@ class AnswerKeyEditorViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Repository'ye veri kaydetme kısmı aynı kalıyor.
             val result = when (state.mode) {
                 EditorMode.ANSWER_KEY -> {
                     val answers = state.questions.associate {
                         it.index.toString() to ('A' + (it.selectedAnswerIndex ?: 0)).toString()
                     }
-                    repository.saveAnswerKey(state.examId, "A", answers)
+                    repository.saveAnswerKey(state.examId, bookletName, answers)
                 }
                 EditorMode.TOPIC_DISTRIBUTION -> {
                     val topics = state.questions
@@ -331,7 +318,7 @@ class AnswerKeyEditorViewModel @Inject constructor(
                         .associate {
                             it.index.toString() to (it.selectedTopic!!)
                         }
-                    repository.saveTopicDistribution(state.examId, "A", topics)
+                    repository.saveTopicDistribution(state.examId, bookletName, topics)
                 }
             }
 

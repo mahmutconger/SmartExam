@@ -4,11 +4,11 @@ import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamDetails
 
 
 data class PreviewUiState(
-    val isLoading: Boolean = true,
     val examDetails: ExamDetails? = null,
-    val answerKey: Map<String, String> = emptyMap(),
-    val topicDistribution: Map<String, String> = emptyMap(),
-    val errorMessage: String? = null
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val answerKeys: Map<String, Map<String, String>> = emptyMap(),
+    val topicDistributions: Map<String, Map<String, String>> = emptyMap()
 )
 
 sealed class PreviewEvent {

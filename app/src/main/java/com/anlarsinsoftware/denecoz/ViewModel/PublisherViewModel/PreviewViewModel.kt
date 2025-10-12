@@ -48,8 +48,8 @@ class PreviewViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             examDetails = fullData.details,
-                            answerKey = fullData.answerKey,
-                            topicDistribution = fullData.topicDistribution
+                            answerKeys = fullData.answerKeys,
+                            topicDistributions = fullData.topicDistributions
                         )
                     }
                 }
@@ -58,6 +58,7 @@ class PreviewViewModel @Inject constructor(
                 }
         }
     }
+
 
     fun onEvent(event: PreviewEvent) {
         when (event) {

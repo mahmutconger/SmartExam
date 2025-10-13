@@ -6,15 +6,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.anlarsinsoftware.denecoz.Model.State.EditorMode
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.EditorMode
 import com.anlarsinsoftware.denecoz.View.EnteranceScreens.LoginScreen
 import com.anlarsinsoftware.denecoz.View.EnteranceScreens.RegisterScreen
-import com.anlarsinsoftware.denecoz.View.HomeScreen.HomeScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.HomeScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.AnswerKeyEditorScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.AnswerKeyScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.GeneralInfoScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PreviewScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PubHomeScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.ExamEntryScreen
 
 sealed class Screen(val route: String) {
     // Student
@@ -24,6 +25,14 @@ sealed class Screen(val route: String) {
     // Publisher
     object PubHomeScreen : Screen("pub_home_screen")
     object GeneralInfoScreen : Screen("general_info_screen")
+
+    object ExamEntryScreen : Screen("exam_entry_screen/{examId}") {
+        fun createRoute(examId: String) = "exam_entry_screen/$examId"
+    }
+
+    object ResultsScreen : Screen("results_screen/{examId}/{attemptId}") {
+        fun createRoute(examId: String, attemptId: String) = "results_screen/$examId/$attemptId"
+    }
 
     object AnswerKeyScreen : Screen("answer_key_screen/{examId}") {
         fun createRoute(examId: String) = "answer_key_screen/$examId"
@@ -52,6 +61,25 @@ fun AppNavigation() {
         }
         composable(route = Screen.RegisterScreen.route) {
             RegisterScreen(navController = navController)
+        }
+
+        // ExamEntry
+        composable(
+            route = Screen.ExamEntryScreen.route,
+            arguments = listOf(navArgument("examId") { type = NavType.StringType })
+        ) {
+            // Bu rotaya gidildiğinde ExamEntryScreen'i göster
+            ExamEntryScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.ResultsScreen.route,
+            arguments = listOf(
+                navArgument("examId") { type = NavType.StringType },
+                navArgument("attemptId") { type = NavType.StringType }
+            )
+        ) {
+            ResultsScreen(navController = navController)
         }
 
         // Student_Home

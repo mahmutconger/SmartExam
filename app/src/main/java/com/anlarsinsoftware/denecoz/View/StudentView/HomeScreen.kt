@@ -1,4 +1,4 @@
-package com.anlarsinsoftware.denecoz.View.HomeScreen
+package com.anlarsinsoftware.denecoz.View.StudentView
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
@@ -25,8 +25,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.R
+import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.HomeViewModel
 
 // --- Basit modeller (örnek veri)
 data class Publisher(val id: Int, val name: String, @DrawableRes val logo: Int)
@@ -38,19 +43,17 @@ data class Product(
     @DrawableRes val image: Int
 )
 
-// --- Örnek veri (drawable'ları projenize ekleyin)
 private val samplePublishers = listOf(
     Publisher(1, "Limit", R.drawable.logo_limit),
     Publisher(2, "ÜçDörtBeş", R.drawable.logo_ucdortbes)
 )
 
-private val sampleProducts = listOf(
-    Product(1, "Limit TYT 5'li Deneme", "20min", 4.5, R.drawable.tytdeneme_ucdortbes),
-    Product(2, "345 AYT Deneme", "20min", 4.5, R.drawable.aytdeneme_ucdortbes)
-)
 
 @Composable
-fun HomeScreen(navController: NavController?) {
+fun HomeScreen(
+    navController: NavController?,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
     val primary = colorResource(id = R.color.primaryBlue)
     val outline = colorResource(id = R.color.linkBlue)
     val divider = colorResource(id = R.color.dividerGray)
@@ -58,6 +61,8 @@ fun HomeScreen(navController: NavController?) {
     val screenBg = colorResource(id = R.color.screenBackground)
 
     var query by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
+
 
     Scaffold(
         modifier = Modifier
@@ -198,22 +203,40 @@ fun HomeScreen(navController: NavController?) {
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // --- Product carousel
+            if (uiState.exams.isEmpty() && !uiState.isLoading) {
+                item {
+                    Text("Görünüşe göre henüz yayınlanmış bir deneme yok.")
+                }
+            } else {
             item {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(sampleProducts) { product ->
-                        ProductCard(product = product, onClick = { /* detay */ })
+                    items(uiState.exams) { exam ->
+                        ProductCard(
+                            exam = exam,
+                            onClick = {
+                                navController?.navigate(Screen.ExamEntryScreen.createRoute(exam.id))
+                            }
+
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(28.dp))
             }
-
-            // boşluk son
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+        }
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
         }
     }
@@ -227,9 +250,10 @@ private fun PublisherItem(pub: Publisher) {
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -244,7 +268,7 @@ private fun PublisherItem(pub: Publisher) {
 }
 
 @Composable
-private fun ProductCard(product: Product, onClick: () -> Unit) {
+private fun ProductCard(exam: PublishedExamSummary, onClick: () -> Unit) {
     var isFavorite by remember { mutableStateOf(false) }
 
     Card(
@@ -254,9 +278,10 @@ private fun ProductCard(product: Product, onClick: () -> Unit) {
         shape = RoundedCornerShape(14.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Box(modifier = Modifier
-            .background(colorResource(id = R.color.cardBackground))
-            .padding(12.dp)
+        Box(
+            modifier = Modifier
+                .background(colorResource(id = R.color.cardBackground))
+                .padding(12.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -267,9 +292,9 @@ private fun ProductCard(product: Product, onClick: () -> Unit) {
                         .height(120.dp)
                         .fillMaxWidth()
                 ) {
-                    Image(
-                        painter = painterResource(id = product.image),
-                        contentDescription = product.title,
+                    AsyncImage(
+                        model = exam.coverImageUrl,
+                        contentDescription = exam.name,
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(10.dp))
@@ -294,7 +319,7 @@ private fun ProductCard(product: Product, onClick: () -> Unit) {
 
                 // Title
                 Text(
-                    text = product.title,
+                    text = exam.name,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
                     maxLines = 2,
@@ -304,20 +329,32 @@ private fun ProductCard(product: Product, onClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // meta (duration + rating)
+                // ProductCard içinde, Row'un içini bununla değiştir
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Yayıncı Adı
                     Text(
-                        text = product.duration,
+                        text = exam.publisherName,
                         fontSize = 12.sp,
                         color = colorResource(id = R.color.mutedText)
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.weight(1f)) // Arada boşluk bırak
 
-                    Icon(imageVector = Icons.Default.Star, contentDescription = "star", tint = colorResource(id = R.color.primaryBlue), modifier = Modifier.size(16.dp))
+                    // Deneme Türü (TYT/AYT)
+                    Icon(
+                        imageVector = Icons.Default.School, // Veya başka uygun bir ikon
+                        contentDescription = "Deneme Türü",
+                        tint = colorResource(id = R.color.primaryBlue),
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = String.format("%.1f", product.rating), fontSize = 12.sp, color = colorResource(id = R.color.mutedText))
+                    Text(
+                        text = exam.examType, // Doğrudan examType'ı gösteriyoruz
+                        fontSize = 12.sp,
+                        color = colorResource(id = R.color.mutedText)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -330,9 +367,17 @@ private fun ProductCard(product: Product, onClick: () -> Unit) {
                     colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.primaryBlue))
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = stringResource(id = R.string.control_it), color = Color.White, fontSize = 14.sp)
+                        Text(
+                            text = stringResource(id = R.string.control_it),
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "go", tint = Color.White)
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "go",
+                            tint = Color.White
+                        )
                     }
                 }
             }
@@ -366,7 +411,8 @@ private fun HomeBottomBar(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
                 val activeColor = colorResource(id = R.color.primaryBlue)
                 val inactive = Color.Gray
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .clickable { onItemSelected(index) }
                         .padding(horizontal = 6.dp)

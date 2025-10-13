@@ -1,7 +1,9 @@
 package com.anlarsinsoftware.denecoz.Repository.PublisherRepo
+import android.util.Log
+import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
-import com.anlarsinsoftware.denecoz.Model.State.BookletStatus
-import com.anlarsinsoftware.denecoz.Model.State.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
@@ -96,6 +98,74 @@ class ExamRepositoryImpl @Inject constructor(
             }
             Result.success(result)
         } catch (e: Exception) { Result.failure(e) }
+    }
+
+    override suspend fun saveStudentAttempt(
+        examId: String,
+        bookletChoice: String,
+        answers: Map<Int, Int?>,
+        alternativeChoice: String?
+    ): Result<String> {
+        return try {
+            Log.d("DEBUG_DENECOZ", "Repository: saveStudentAttempt başladı.")
+
+            val studentId = auth.currentUser?.uid ?: return Result.failure(Exception("Kullanıcı girişi yapılmamış."))
+            Log.d("DEBUG_DENECOZ", "studentId alındı: $studentId")
+            val answersToSave = answers.mapKeys { it.key.toString() }
+                .mapValues { ('A' + (it.value ?: -1)).toString() }
+
+            val attemptData = mapOf(
+                "studentId" to studentId,
+                "examId" to examId,
+                "completedAt" to FieldValue.serverTimestamp(),
+                "booklet" to bookletChoice,
+                "answers" to answersToSave,
+                "alternativeChoice" to alternativeChoice
+            )
+
+            Log.d("DEBUG_DENECOZ", "Firestore'a yazma işlemi başlıyor...")
+
+            val docRef = firestore.collection("attempts").add(attemptData).await()
+            Log.d("DEBUG_DENECOZ", "Firestore'a yazma BAŞARILI. docId: ${docRef.id}")
+
+            Result.success(docRef.id)
+        } catch (e: Exception) {
+            Log.e("DEBUG_DENECOZ", "Repository HATA VERDİ: ${e.message}", e)
+
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getPublishedExams(): Result<List<PublishedExamSummary>> {
+        return try {
+            Log.d("DEBUG_DENECOZ", "getPublishedExams fonksiyonu çalıştı. Sorgu hazırlanıyor...")
+
+            val querySnapshot = examsCollection
+                .whereEqualTo("status", "published")
+                .orderBy("createdAt", Query.Direction.DESCENDING) // En yeni denemeler üstte
+                .get()
+                .await()
+
+            Log.d("DEBUG_DENECOZ", "Sorgu sonucu: ${querySnapshot.size()} deneme bulundu.")
+
+            // TODO: Bu kısım publisher bilgilerini de çekmek için geliştirilebilir.
+            val exams = querySnapshot.map { document ->
+                PublishedExamSummary(
+                    id = document.id,
+                    name = document.getString("name") ?: "",
+                    coverImageUrl = document.getString("coverImageUrl"), // Bu alanı daha sonra ekleyeceğiz
+                    publisherName = "Yayıncı Adı", // Şimdilik sabit
+                    examType = document.getString("examType") ?: ""
+                )
+            }
+            Log.d("DEBUG_DENECOZ", "Map'leme sonrası: ${exams.size} deneme objesi oluşturuldu.")
+
+            Result.success(exams)
+        } catch (e: Exception) {
+            Log.e("DEBUG_DENECOZ", "getPublishedExams HATA VERDİ: ${e.message}")
+
+            Result.failure(e)
+        }
     }
 
     override suspend fun getFullExamForPreview(examId: String): Result<FullExamData> = coroutineScope {

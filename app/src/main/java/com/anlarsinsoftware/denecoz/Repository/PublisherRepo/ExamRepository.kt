@@ -1,8 +1,10 @@
 package com.anlarsinsoftware.denecoz.Repository.PublisherRepo
 
+import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
-import com.anlarsinsoftware.denecoz.Model.State.BookletStatus
-import com.anlarsinsoftware.denecoz.Model.State.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
@@ -38,4 +40,8 @@ interface ExamRepository {
     suspend fun moveDocument(oldCollectionPath: String, oldDocId: String, newCollectionPath: String, newDocId: String): Result<Unit>
     suspend fun getExamStatus(examId: String): Result<Map<String, BookletStatus>>
     suspend fun addNewBooklet(examId: String, bookletName: String): Result<Unit>
+    suspend fun getPublishedExams(): Result<List<PublishedExamSummary>>
+    suspend fun saveStudentAttempt(examId: String, bookletChoice: String, answers: Map<Int, Int?>, alternativeChoice: String?): Result<String>
+    suspend fun getAnalysisData(examId: String, attemptId: String): Result<AnalysisData>
+    // TODO: Yayınevlerini çekmek için de bir fonksiyon eklenebilir.
 }

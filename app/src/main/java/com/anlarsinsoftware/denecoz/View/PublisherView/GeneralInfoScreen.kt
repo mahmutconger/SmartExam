@@ -17,13 +17,11 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Image
@@ -32,8 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.anlarsinsoftware.denecoz.Model.State.GeneralInfoEvent
-import com.anlarsinsoftware.denecoz.Model.State.NavigationEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.GeneralInfoEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.NavigationEvent
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel.GeneralInfoViewModel

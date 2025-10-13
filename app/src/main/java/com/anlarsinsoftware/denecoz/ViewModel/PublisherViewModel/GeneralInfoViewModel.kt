@@ -3,9 +3,9 @@ package com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.anlarsinsoftware.denecoz.Model.State.GeneralInfoEvent
-import com.anlarsinsoftware.denecoz.Model.State.GeneralInfoUiState
-import com.anlarsinsoftware.denecoz.Model.State.NavigationEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.GeneralInfoEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.GeneralInfoUiState
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.NavigationEvent
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow

@@ -1,7 +1,5 @@
 package com.anlarsinsoftware.denecoz.View.PublisherView
 
-import android.content.res.Configuration
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -25,18 +22,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEditorEvent
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEditorNavigationEvent
-import com.anlarsinsoftware.denecoz.Model.State.EditorMode
-import com.anlarsinsoftware.denecoz.Model.State.QuestionState
-import com.anlarsinsoftware.denecoz.Model.State.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEditorEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEditorNavigationEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.EditorMode
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.View.Common.AnswerQuestionRow
 import com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel.AnswerKeyEditorViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,45 +200,6 @@ private fun SubjectRow(subject: SubjectDef, assigned: Int, expandedState: Boolea
             Text(text = "$assigned/${subject.totalQuestions}", color = Color.Gray)
             Spacer(modifier = Modifier.width(8.dp))
             Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = null)
-        }
-    }
-}
-@Composable
-private fun AnswerQuestionRow(
-    displayIndex: Int,
-    selected: Int?,
-    onSelect: (Int) -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7FF)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = stringResource(id = R.string.question_label, displayIndex), modifier = Modifier.weight(0.35f))
-            Spacer(modifier = Modifier.width(8.dp))
-            Row(modifier = Modifier.weight(0.65f), horizontalArrangement = Arrangement.SpaceBetween) {
-                // 5 options A-E
-                for (i in 0 until 5) {
-                    val letter = ('A' + i)
-                    val isSelected = selected == i
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable { onSelect(i) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = letter.toString(), color = if (isSelected) Color.White else Color.Black)
-                    }
-                }
-            }
         }
     }
 }

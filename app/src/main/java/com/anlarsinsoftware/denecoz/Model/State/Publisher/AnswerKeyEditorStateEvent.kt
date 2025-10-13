@@ -1,4 +1,4 @@
-package com.anlarsinsoftware.denecoz.Model.State
+package com.anlarsinsoftware.denecoz.Model.State.Publisher
 
 data class QuestionState(
     val index: Int,

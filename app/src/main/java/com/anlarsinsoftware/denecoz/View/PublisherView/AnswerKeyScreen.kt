@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,9 +31,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEvent
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyNavigationEvent
-import com.anlarsinsoftware.denecoz.R
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyNavigationEvent
 import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel.AnswerKeyViewModel
 

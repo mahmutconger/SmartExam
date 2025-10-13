@@ -3,11 +3,10 @@ package com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyEvent // Event dosyasını da güncellememiz gerekecek
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyNavigationEvent
-import com.anlarsinsoftware.denecoz.Model.State.AnswerKeyUiState
-import com.anlarsinsoftware.denecoz.Model.State.BookletStatus
-import com.anlarsinsoftware.denecoz.Model.State.EditorMode
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEvent // Event dosyasını da güncellememiz gerekecek
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyNavigationEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyUiState
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.EditorMode
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow

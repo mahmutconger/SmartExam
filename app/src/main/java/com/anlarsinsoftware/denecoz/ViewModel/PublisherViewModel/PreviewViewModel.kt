@@ -3,9 +3,9 @@ package com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.anlarsinsoftware.denecoz.Model.State.PreviewEvent
-import com.anlarsinsoftware.denecoz.Model.State.PreviewNavigationEvent
-import com.anlarsinsoftware.denecoz.Model.State.PreviewUiState
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.PreviewEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.PreviewNavigationEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.PreviewUiState
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow

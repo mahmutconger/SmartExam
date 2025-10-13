@@ -8,21 +8,18 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.anlarsinsoftware.denecoz.Model.State.PreviewEvent
-import com.anlarsinsoftware.denecoz.Model.State.PreviewNavigationEvent
-import com.anlarsinsoftware.denecoz.R
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.PreviewEvent
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.PreviewNavigationEvent
 import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.ViewModel.PublisherViewModel.PreviewViewModel
 

@@ -1,4 +1,4 @@
-package com.anlarsinsoftware.denecoz.Model.State
+package com.anlarsinsoftware.denecoz.Model.State.Publisher
 
 import android.net.Uri
 

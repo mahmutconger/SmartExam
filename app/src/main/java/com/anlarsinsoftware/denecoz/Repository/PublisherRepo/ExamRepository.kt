@@ -5,6 +5,7 @@ import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
+import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
@@ -43,5 +44,7 @@ interface ExamRepository {
     suspend fun getPublishedExams(): Result<List<PublishedExamSummary>>
     suspend fun saveStudentAttempt(examId: String, bookletChoice: String, answers: Map<Int, Int?>, alternativeChoice: String?): Result<String>
     suspend fun getAnalysisData(examId: String, attemptId: String): Result<AnalysisData>
+    suspend fun getHistoricalTopicPerformance(studentId: String, topicName: String): Result<HistoricalTopicPerformance>
+
     // TODO: Yayınevlerini çekmek için de bir fonksiyon eklenebilir.
 }

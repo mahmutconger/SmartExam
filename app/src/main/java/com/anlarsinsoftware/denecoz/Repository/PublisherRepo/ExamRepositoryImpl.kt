@@ -4,6 +4,8 @@ import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
+import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
@@ -107,12 +109,12 @@ class ExamRepositoryImpl @Inject constructor(
         alternativeChoice: String?
     ): Result<String> {
         return try {
-            Log.d("DEBUG_DENECOZ", "Repository: saveStudentAttempt başladı.")
 
             val studentId = auth.currentUser?.uid ?: return Result.failure(Exception("Kullanıcı girişi yapılmamış."))
-            Log.d("DEBUG_DENECOZ", "studentId alındı: $studentId")
             val answersToSave = answers.mapKeys { it.key.toString() }
-                .mapValues { ('A' + (it.value ?: -1)).toString() }
+                .mapValues {
+                    if (it.value == null) "-" else ('A' + it.value!!).toString()
+                }
 
             val attemptData = mapOf(
                 "studentId" to studentId,
@@ -123,22 +125,16 @@ class ExamRepositoryImpl @Inject constructor(
                 "alternativeChoice" to alternativeChoice
             )
 
-            Log.d("DEBUG_DENECOZ", "Firestore'a yazma işlemi başlıyor...")
-
             val docRef = firestore.collection("attempts").add(attemptData).await()
-            Log.d("DEBUG_DENECOZ", "Firestore'a yazma BAŞARILI. docId: ${docRef.id}")
 
             Result.success(docRef.id)
         } catch (e: Exception) {
-            Log.e("DEBUG_DENECOZ", "Repository HATA VERDİ: ${e.message}", e)
-
             Result.failure(e)
         }
     }
 
     override suspend fun getPublishedExams(): Result<List<PublishedExamSummary>> {
         return try {
-            Log.d("DEBUG_DENECOZ", "getPublishedExams fonksiyonu çalıştı. Sorgu hazırlanıyor...")
 
             val querySnapshot = examsCollection
                 .whereEqualTo("status", "published")
@@ -146,7 +142,6 @@ class ExamRepositoryImpl @Inject constructor(
                 .get()
                 .await()
 
-            Log.d("DEBUG_DENECOZ", "Sorgu sonucu: ${querySnapshot.size()} deneme bulundu.")
 
             // TODO: Bu kısım publisher bilgilerini de çekmek için geliştirilebilir.
             val exams = querySnapshot.map { document ->
@@ -158,12 +153,83 @@ class ExamRepositoryImpl @Inject constructor(
                     examType = document.getString("examType") ?: ""
                 )
             }
-            Log.d("DEBUG_DENECOZ", "Map'leme sonrası: ${exams.size} deneme objesi oluşturuldu.")
 
             Result.success(exams)
         } catch (e: Exception) {
-            Log.e("DEBUG_DENECOZ", "getPublishedExams HATA VERDİ: ${e.message}")
+            Result.failure(e)
+        }
+    }
 
+    override suspend fun getAnalysisData(examId: String, attemptId: String): Result<AnalysisData> = coroutineScope {
+        return@coroutineScope try {
+            // 1. Önce öğrencinin deneme kaydını çekelim. Bu bize hangi kitapçığı çözdüğünü söyleyecek.
+            val attemptSnapshot = firestore.collection("attempts").document(attemptId).get().await()
+            if (!attemptSnapshot.exists()) {
+                return@coroutineScope Result.failure(Exception("Deneme kaydı bulunamadı."))
+            }
+
+            // Deneme kaydından kritik bilgileri alalım
+            val studentAnswers = attemptSnapshot.get("answers") as? Map<String, String> ?: emptyMap()
+            val bookletChoice = attemptSnapshot.getString("booklet") ?: return@coroutineScope Result.failure(Exception("Kitapçık seçimi bulunamadı."))
+            val studentAlternativeChoice = attemptSnapshot.getString("alternativeChoice")
+
+            // 2. Artık kitapçığı bildiğimize göre, diğer tüm verileri ASENKRON (paralel) olarak çekebiliriz.
+            val examDetailsDeferred = async { getExamDetails(examId) } // Mevcut fonksiyonumuzu yeniden kullanıyoruz!
+            val correctAnswersDeferred = async {
+                firestore.collection("exams").document(examId)
+                    .collection("booklets").document(bookletChoice)
+                    .collection("answerKey").get().await()
+            }
+            val topicDistDeferred = async {
+                firestore.collection("exams").document(examId)
+                    .collection("booklets").document(bookletChoice)
+                    .collection("topicDistribution").get().await()
+            }
+
+            // 3. Tüm asenkron işlerin bitmesini bekleyelim.
+            val examDetailsResult = examDetailsDeferred.await()
+            val correctAnswersSnapshot = correctAnswersDeferred.await()
+            val topicDistSnapshot = topicDistDeferred.await()
+
+            // getExamDetails hata döndürdüyse, işlemi durduralım.
+            if (examDetailsResult.isFailure) {
+                return@coroutineScope Result.failure(examDetailsResult.exceptionOrNull()!!)
+            }
+            val examDetails = examDetailsResult.getOrThrow()
+
+            // 4. Gelen verileri temiz Map'lere dönüştürelim.
+            val correctAnswers = correctAnswersSnapshot.documents.associate { it.id to (it.getString("correctAnswer") ?: "") }
+            val topicDistribution = topicDistSnapshot.documents.associate { it.id to (it.getString("topicId") ?: "") }
+
+            // 5. Tüm verileri tek bir pakette toplayalım.
+            val analysisData = AnalysisData(
+                examDetails = examDetails,
+                studentAnswers = studentAnswers,
+                correctAnswers = correctAnswers,
+                topicDistribution = topicDistribution,
+                studentAlternativeChoice = studentAlternativeChoice
+            )
+
+            Result.success(analysisData)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
+    override suspend fun getHistoricalTopicPerformance(studentId: String, topicName: String): Result<HistoricalTopicPerformance> {
+        return try {
+            val docId = "${studentId}_${topicName}"
+            val docSnapshot = firestore.collection("userTopicPerformance").document(docId).get().await()
+
+            if (docSnapshot.exists()) {
+                val performance = docSnapshot.toObject(HistoricalTopicPerformance::class.java)!!
+                Result.success(performance)
+            } else {
+                Result.success(HistoricalTopicPerformance(0, 0, 0))
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }

@@ -37,6 +37,7 @@ private sealed interface ExamDisplayItem {
     data class Question(
         val overallIndex: Int,
         val displayIndex: Int,
+        val subjectId: String,
         val isAlternativeTrigger: Boolean,
         val sectionSubSubjects: List<Map<String, Any>>?
     ) : ExamDisplayItem
@@ -120,18 +121,38 @@ fun ExamEntryScreen(
                         subSubjects = subjectMap["subSubjects"] as? List<Map<String, Any>>
                     )
 
-                    // Listeye bir başlık ekle
                     items.add(ExamDisplayItem.Header(section.name))
 
-                    // Listeye soruları ekle
-                    (1..section.questionCount).forEach { index ->
-                        val overallIndex = questionStartIndex + index
-                        items.add(ExamDisplayItem.Question(
-                            overallIndex = overallIndex,
-                            displayIndex = index,
-                            isAlternativeTrigger = viewModel.isAlternativeTrigger(section.name, index),
-                            sectionSubSubjects = section.subSubjects
-                        ))
+                    // GÜNCELLENMİŞ MANTIK: Alt derslere göre soruları ekle
+                    if (section.subSubjects.isNullOrEmpty()) {
+                        // Eğer alt ders yoksa (Türkçe gibi), varsayılan olarak ilerle
+                        val subjectId = section.name.lowercase() // Basit bir kimlik
+                        (1..section.questionCount).forEach { index ->
+                            val overallIndex = questionStartIndex + index
+                            items.add(ExamDisplayItem.Question(
+                                overallIndex = overallIndex, displayIndex = index,
+                                subjectId = subjectId, // Yeni alanı doldur
+                                isAlternativeTrigger = false, sectionSubSubjects = null
+                            ))
+                        }
+                    } else {
+                        // Eğer alt dersler VARSA (Sosyal Bilimler gibi)
+                        var questionIndexInTest = 0
+                        section.subSubjects.forEach { subSubjectMap ->
+                            val subSubjectId = subSubjectMap["subjectId"] as String
+                            val subSubjectQuestionCount = (subSubjectMap["questionCount"] as Long).toInt()
+
+                            (1..subSubjectQuestionCount).forEach { _ ->
+                                questionIndexInTest++
+                                val overallIndex = questionStartIndex + questionIndexInTest
+                                items.add(ExamDisplayItem.Question(
+                                    overallIndex = overallIndex, displayIndex = questionIndexInTest,
+                                    subjectId = subSubjectId, // Her sorunun kime ait olduğunu belirt
+                                    isAlternativeTrigger = viewModel.isAlternativeTrigger(section.name, questionIndexInTest),
+                                    sectionSubSubjects = section.subSubjects
+                                ))
+                            }
+                        }
                     }
                     questionStartIndex += section.questionCount
                 }
@@ -164,13 +185,24 @@ fun ExamEntryScreen(
                             is ExamDisplayItem.Question -> {
                                 val selectedAnswer = uiState.studentAnswers[item.overallIndex]
 
+                                val isAlternativeSubject = item.sectionSubSubjects?.find {
+                                    it["subjectId"] == item.subjectId
+                                }?.get("isAlternative") as? Boolean
+
+                                val isEnabled = when (isAlternativeSubject) {
+                                    null -> true // Alternatif değil, her zaman etkin
+                                    else -> uiState.alternativeChoice != null && item.subjectId == uiState.alternativeChoice
+                                }
+
                                 AnswerQuestionRow(
                                     displayIndex = item.displayIndex,
                                     selected = selectedAnswer,
                                     onSelect = { choiceIndex ->
                                         viewModel.onEvent(ExamEntryEvent.OnAnswerSelected(item.overallIndex, choiceIndex))
-                                    }
+                                    },
+                                    enabled = isEnabled
                                 )
+
 
                                 AnimatedVisibility(visible = item.isAlternativeTrigger) {
                                     AlternativeSubjectChooser(

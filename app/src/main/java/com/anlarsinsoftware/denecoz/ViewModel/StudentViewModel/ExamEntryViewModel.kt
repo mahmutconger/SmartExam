@@ -63,7 +63,12 @@ class ExamEntryViewModel @Inject constructor(
             }
             is ExamEntryEvent.OnAnswerSelected -> {
                 val updatedAnswers = _uiState.value.studentAnswers.toMutableMap()
-                updatedAnswers[event.questionIndex] = event.answerIndex
+                val currentAnswer = updatedAnswers[event.questionIndex]
+                if (currentAnswer == event.answerIndex) {
+                    updatedAnswers[event.questionIndex] = null
+                } else {
+                    updatedAnswers[event.questionIndex] = event.answerIndex
+                }
                 _uiState.update { it.copy(studentAnswers = updatedAnswers) }
             }
             is ExamEntryEvent.OnAlternativeSelected -> {
@@ -95,11 +100,9 @@ class ExamEntryViewModel @Inject constructor(
     private fun checkForUnansweredQuestions() {
         val currentState = _uiState.value
         val unansweredIndices = currentState.studentAnswers.filter { it.value == null }.keys
-        Log.d("DEBUG_DENECOZ", "Boş soru kontrolü yapıldı. Bulunan boş soru sayısı: ${unansweredIndices.size}")
 
         // Eğer hiç boş soru yoksa, direkt kaydet ve devam et
         if (unansweredIndices.isEmpty()) {
-            Log.d("DEBUG_DENECOZ", "Hiç boş soru bulunamadı. submitAttempt() çağrılıyor.")
             submitAttempt()
             return
         }
@@ -132,7 +135,6 @@ class ExamEntryViewModel @Inject constructor(
 
 
     private fun submitAttempt() {
-        Log.d("DEBUG_DENECOZ", "submitAttempt fonksiyonu başladı.")
 
         val currentState = _uiState.value
         if (currentState.selectedBooklet == null) {
@@ -143,7 +145,6 @@ class ExamEntryViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            Log.d("DEBUG_DENECOZ", "repository.saveStudentAttempt çağrılmak üzere...")
 
             repository.saveStudentAttempt(
                 examId = examId,
@@ -151,10 +152,8 @@ class ExamEntryViewModel @Inject constructor(
                 answers = currentState.studentAnswers,
                 alternativeChoice = currentState.alternativeChoice
             ).onSuccess { attemptId ->
-                Log.d("DEBUG_DENECOZ", "Kayıt BAŞARILI. attemptId: $attemptId")
                 _navigationEvent.emit(ExamEntryNavigationEvent.NavigateToResults(examId, attemptId))
             }.onFailure { exception ->
-                Log.e("DEBUG_DENECOZ", "Kayıt BAŞARISIZ: ${exception.message}", exception)
                 _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
             }
         }

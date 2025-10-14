@@ -1,18 +1,25 @@
 package com.anlarsinsoftware.denecoz.View.StudentView
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.anlarsinsoftware.denecoz.Model.State.Student.SubjectResult
+import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.ResultsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,7 +32,7 @@ fun ResultsScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(title = { Text("Deneme Sonucun") })
+            CenterAlignedTopAppBar(title = { Text("Deneme Analizi") })
         }
     ) { padding ->
         if (uiState.isLoading) {
@@ -36,7 +43,6 @@ fun ResultsScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Genel Sonuç Özeti
                 item {
                     OverallSummaryCard(
                         examName = uiState.examName,
@@ -47,15 +53,27 @@ fun ResultsScreen(
                     )
                 }
 
-                // 2. Ders Sonuçları
-                items(uiState.subjectResults) { subjectResult ->
-                    SubjectResultCard(result = subjectResult)
+                // GÜNCELLENMİŞ BÖLÜM: Artık her ders için genişletilebilir bir kart listeliyoruz
+                items(uiState.subjectResults, key = { it.subjectName }) { subjectResult ->
+                    SubjectResultCard(
+                        result = subjectResult,
+                        examId = viewModel.examId, // ViewModel'dan ID'leri alıyoruz
+                        attemptId = viewModel.attemptId,
+                        onTopicClick = { topicName ->
+                            navController.navigate(
+                                Screen.AnalysisDetailsScreen.createRoute(viewModel.examId, viewModel.attemptId, topicName)
+                            )
+                        }
+                    )
                 }
 
-                // 3. Ana Sayfaya Dön Butonu
                 item {
                     Button(
-                        onClick = { /* TODO: Ana sayfaya dön */ },
+                        onClick = {
+                            navController.navigate(Screen.HomeScreen.route) {
+                                popUpTo(Screen.HomeScreen.route) { inclusive = true }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().height(52.dp)
                     ) {
                         Text("Harika! Ana Sayfaya Dön")
@@ -93,31 +111,66 @@ private fun SummaryItem(label: String, value: String) {
 }
 
 @Composable
-private fun SubjectResultCard(result: SubjectResult) {
+private fun SubjectResultCard(
+    result: SubjectResult,
+    examId: String,
+    attemptId: String,
+    onTopicClick: (topicName: String) -> Unit
+) {
+    // Her kart kendi "genişletilme" durumunu kendisi yönetir.
     var isExpanded by remember { mutableStateOf(false) }
+    val rotationAngle by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f)
 
     OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
+        Column {
+            // Tıklandığında kartı genişleten/daraltan ana satır
             Row(
-                Modifier.fillMaxWidth().clickable { isExpanded = !isExpanded },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(result.subjectName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 SummaryItem("D", result.correct.toString())
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 SummaryItem("Y", result.incorrect.toString())
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 SummaryItem("Net", String.format("%.2f", result.net))
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = "Genişlet/Daralt",
+                    modifier = Modifier.rotate(rotationAngle)
+                )
             }
 
-            if (isExpanded) {
-                Divider(Modifier.padding(vertical = 12.dp))
-                Text("Konu Analizi", fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                result.topicResults.forEach { topic ->
-                    Row(Modifier.fillMaxWidth()) {
-                        Text(topic.topicName, modifier = Modifier.weight(1f))
-                        Text("${topic.correct}D, ${topic.incorrect}Y, ${topic.empty}B")
+            // Sadece isExpanded true ise görünen, animasyonlu bölüm
+            AnimatedVisibility(visible = isExpanded) {
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+                    Divider()
+                    Spacer(Modifier.height(12.dp))
+                    Text("Konu Analizi", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+
+                    // Konuları listele
+                    Column(
+                        modifier = Modifier.padding(top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp) // Her konu arasına 12.dp boşluk
+                    ) {
+                        result.topicResults.forEach { topic ->
+                            // Her konu satırını tıklanabilir yap
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onTopicClick(topic.topicName) },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(topic.topicName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                Text("${topic.correct}D, ${topic.incorrect}Y, ${topic.empty}B", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Detay", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }

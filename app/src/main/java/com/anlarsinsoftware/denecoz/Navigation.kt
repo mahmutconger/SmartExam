@@ -15,7 +15,9 @@ import com.anlarsinsoftware.denecoz.View.PublisherView.AnswerKeyScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.GeneralInfoScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PreviewScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PubHomeScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.AnalysisDetailsScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ExamEntryScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.ResultsScreen
 
 sealed class Screen(val route: String) {
     // Student
@@ -43,6 +45,10 @@ sealed class Screen(val route: String) {
     }
     object PreviewScreen : Screen("preview_screen/{examId}") {
         fun createRoute(examId: String) = "preview_screen/$examId"
+    }
+    object AnalysisDetailsScreen : Screen("analysis_details/{examId}/{attemptId}/{topicName}") {
+        fun createRoute(examId: String, attemptId: String, topicName: String) =
+            "analysis_details/$examId/$attemptId/$topicName"
     }
 }
 
@@ -85,6 +91,16 @@ fun AppNavigation() {
         // Student_Home
         composable(route = Screen.HomeScreen.route) {
             HomeScreen(navController = navController)
+        }
+        composable(
+            route = Screen.AnalysisDetailsScreen.route,
+            arguments = listOf(
+                navArgument("examId") { type = NavType.StringType },
+                navArgument("attemptId") { type = NavType.StringType },
+                navArgument("topicName") { type = NavType.StringType }
+            )
+        ) {
+            AnalysisDetailsScreen(navController = navController)
         }
 
         // Publisher

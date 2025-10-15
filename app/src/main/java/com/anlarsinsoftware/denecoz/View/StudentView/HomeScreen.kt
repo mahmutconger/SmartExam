@@ -70,7 +70,13 @@ fun HomeScreen(
             .background(screenBg),
         bottomBar = {
             HomeBottomBar(selectedIndex = 0) { index ->
-                // placeholder: nav işlemleri burada yapılabilir
+                when (index) {
+                    // 0: Home, 1: Explore, 2: Settings
+                    // 3. index "Profil" ikonuna karşılık geliyor
+                    3 -> {
+                        navController?.navigate(Screen.ProfileScreen.route)
+                    }
+                }
             }
         },
         containerColor = screenBg

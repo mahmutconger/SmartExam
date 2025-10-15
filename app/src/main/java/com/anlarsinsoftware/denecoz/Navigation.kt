@@ -17,6 +17,7 @@ import com.anlarsinsoftware.denecoz.View.PublisherView.PreviewScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PubHomeScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.AnalysisDetailsScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ExamEntryScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.ProfileScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ResultsScreen
 
 sealed class Screen(val route: String) {
@@ -24,6 +25,7 @@ sealed class Screen(val route: String) {
     object LoginScreen : Screen("login_screen")
     object RegisterScreen : Screen("register_screen")
     object HomeScreen : Screen("home_screen")
+    object ProfileScreen : Screen("profile_screen")
     // Publisher
     object PubHomeScreen : Screen("pub_home_screen")
     object GeneralInfoScreen : Screen("general_info_screen")
@@ -91,6 +93,9 @@ fun AppNavigation() {
         // Student_Home
         composable(route = Screen.HomeScreen.route) {
             HomeScreen(navController = navController)
+        }
+        composable(route = Screen.ProfileScreen.route) {
+            ProfileScreen(navController = navController)
         }
         composable(
             route = Screen.AnalysisDetailsScreen.route,

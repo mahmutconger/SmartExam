@@ -4,6 +4,9 @@ import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.State.Student.BestNetResult
+import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
+import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
 import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
 import com.google.firebase.firestore.ServerTimestamp
@@ -45,6 +48,8 @@ interface ExamRepository {
     suspend fun saveStudentAttempt(examId: String, bookletChoice: String, answers: Map<Int, Int?>, alternativeChoice: String?): Result<String>
     suspend fun getAnalysisData(examId: String, attemptId: String): Result<AnalysisData>
     suspend fun getHistoricalTopicPerformance(studentId: String, topicName: String): Result<HistoricalTopicPerformance>
+    suspend fun getUserProfile(studentId: String): Result<UserProfile>
+    suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>>
 
     // TODO: Yayınevlerini çekmek için de bir fonksiyon eklenebilir.
 }

@@ -4,8 +4,11 @@ import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
+import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
 import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
@@ -41,6 +44,49 @@ class ExamRepositoryImpl @Inject constructor(
             val documentReference = examsCollection.add(fullExamData).await()
             Result.success(documentReference.id)
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUserProfile(studentId: String): Result<UserProfile> {
+        return try {
+            val doc = firestore.collection("users").document(studentId).get().await()
+            if (doc.exists()) {
+                val userProfile = doc.toObject(UserProfile::class.java)!!
+                Result.success(userProfile)
+            } else {
+                Result.failure(Exception("Kullanıcı profili bulunamadı."))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>> {
+        return try {
+            Log.d("PROFILE_DEBUG", "getPastAttempts fonksiyonu çalıştı. Aranan studentId: $studentId")
+            val attemptsSnapshot = firestore.collection("attempts")
+                .whereEqualTo("studentId", studentId)
+                .orderBy("completedAt", Query.Direction.DESCENDING)
+                .get().await()
+
+            Log.d("PROFILE_DEBUG", "Firestore sorgusu tamamlandı. Bulunan deneme sayısı: ${attemptsSnapshot.size()}")
+
+            val pastAttempts = attemptsSnapshot.documents.map { attemptDoc ->
+                PastAttemptSummary(
+                    attemptId = attemptDoc.id,
+                    examId = attemptDoc.getString("examId") ?: "",
+                    examName = attemptDoc.getString("examName") ?: "Bilinmeyen Deneme",
+                    examType = attemptDoc.getString("examType") ?: "",
+                    coverImageUrl = attemptDoc.getString("coverImageUrl"),
+                    completedAt = (attemptDoc.getTimestamp("completedAt") ?: Timestamp.now()).toDate()
+                )
+            }
+            Log.d("PROFILE_DEBUG", "Map'leme sonrası oluşturulan PastAttemptSummary sayısı: ${pastAttempts.size}")
+
+            Result.success(pastAttempts)
+        } catch (e: Exception) {
+            Log.e("PROFILE_DEBUG", "getPastAttempts HATA VERDİ: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -116,13 +162,21 @@ class ExamRepositoryImpl @Inject constructor(
                     if (it.value == null) "-" else ('A' + it.value!!).toString()
                 }
 
+            val examDoc = firestore.collection("exams").document(examId).get().await()
+            val examName = examDoc.getString("name") ?: "Bilinmeyen Deneme"
+            val examType = examDoc.getString("examType") ?: ""
+            val coverImageUrl = examDoc.getString("coverImageUrl")
+
             val attemptData = mapOf(
                 "studentId" to studentId,
                 "examId" to examId,
                 "completedAt" to FieldValue.serverTimestamp(),
                 "booklet" to bookletChoice,
                 "answers" to answersToSave,
-                "alternativeChoice" to alternativeChoice
+                "alternativeChoice" to alternativeChoice,
+                "examName" to examName,
+                "examType" to examType,
+                "coverImageUrl" to coverImageUrl
             )
 
             val docRef = firestore.collection("attempts").add(attemptData).await()

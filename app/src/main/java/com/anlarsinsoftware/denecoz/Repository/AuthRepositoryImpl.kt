@@ -21,7 +21,8 @@ class AuthRepositoryImpl @Inject constructor(
             "uid" to firebaseUser.uid,
             "email" to email,
             "role" to role.name,
-            "createdAt" to System.currentTimeMillis()
+            "createdAt" to System.currentTimeMillis(),
+            "bestScores" to emptyMap<String, Any>()
         )
 
         firestore.collection("users").document(firebaseUser.uid).set(userMap).await()

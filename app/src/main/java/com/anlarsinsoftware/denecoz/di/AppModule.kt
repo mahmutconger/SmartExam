@@ -1,5 +1,3 @@
-// app/src/main/java/com/anlarsinsoftware/denecoz/di/AppModule.kt
-
 package com.anlarsinsoftware.denecoz.di
 
 import com.anlarsinsoftware.denecoz.Repository.AuthRepository
@@ -8,6 +6,7 @@ import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepositoryImpl
 import com.anlarsinsoftware.denecoz.data.repository.AuthRepositoryImpl
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage // Bu import'u ekle
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,13 +28,21 @@ object AppModule {
     fun provideFirebaseFirestore(): FirebaseFirestore {
         return FirebaseFirestore.getInstance()
     }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage {
+        return FirebaseStorage.getInstance()
+    }
+
     @Provides
     @Singleton
     fun provideAuthRepository(
         auth: FirebaseAuth,
-        firestore: FirebaseFirestore
+        firestore: FirebaseFirestore,
+        storage: FirebaseStorage
     ): AuthRepository {
-        return AuthRepositoryImpl(auth, firestore)
+        return AuthRepositoryImpl(auth, firestore, storage)
     }
 
     @Provides

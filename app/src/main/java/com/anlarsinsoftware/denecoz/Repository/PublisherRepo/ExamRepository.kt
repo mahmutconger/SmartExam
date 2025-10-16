@@ -9,6 +9,7 @@ import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
 import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
+import com.anlarsinsoftware.denecoz.Model.Student.PublisherSummary
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
@@ -50,6 +51,5 @@ interface ExamRepository {
     suspend fun getHistoricalTopicPerformance(studentId: String, topicName: String): Result<HistoricalTopicPerformance>
     suspend fun getUserProfile(studentId: String): Result<UserProfile>
     suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>>
-
-    // TODO: Yayınevlerini çekmek için de bir fonksiyon eklenebilir.
+    suspend fun getPublishers(): Result<List<PublisherSummary>>
 }

@@ -8,6 +8,7 @@ import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
 import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
+import com.anlarsinsoftware.denecoz.Model.Student.PublisherSummary
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
@@ -196,8 +197,6 @@ class ExamRepositoryImpl @Inject constructor(
                 .get()
                 .await()
 
-
-            // TODO: Bu kısım publisher bilgilerini de çekmek için geliştirilebilir.
             val exams = querySnapshot.map { document ->
                 PublishedExamSummary(
                     id = document.id,
@@ -209,6 +208,25 @@ class ExamRepositoryImpl @Inject constructor(
             }
 
             Result.success(exams)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getPublishers(): Result<List<PublisherSummary>> {
+        return try {
+            val snapshot = firestore.collection("users")
+                .whereEqualTo("role", "PUBLISHER") // Rol adının veritabanında nasıl yazıldığına dikkat et
+                .get().await()
+
+            val publishers = snapshot.map { doc ->
+                PublisherSummary(
+                    id = doc.id,
+                    name = doc.getString("name") ?: "Bilinmeyen Yayınevi", // `users` dökümanında "name" alanı olduğunu varsayıyoruz
+                    logoUrl = doc.getString("logoUrl")
+                )
+            }
+            Result.success(publishers)
         } catch (e: Exception) {
             Result.failure(e)
         }

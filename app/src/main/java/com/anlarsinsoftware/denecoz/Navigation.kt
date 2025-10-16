@@ -7,25 +7,36 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.EditorMode
-import com.anlarsinsoftware.denecoz.View.EnteranceScreens.LoginScreen
-import com.anlarsinsoftware.denecoz.View.EnteranceScreens.RegisterScreen
+import com.anlarsinsoftware.denecoz.View.Common.WelcomeScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.HomeScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.AnswerKeyEditorScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.AnswerKeyScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.GeneralInfoScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PreviewScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PubHomeScreen
+import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherLoginScreen
+import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherRegisterScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.AnalysisDetailsScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.EditProfileScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ExamEntryScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ProfileScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ResultsScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.StudentLoginScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.StudentRegisterScreen
 
 sealed class Screen(val route: String) {
+    // --- GİRİŞ EKRANLARI ---
+    object WelcomeScreen : Screen("welcome_screen")
+    object StudentLoginScreen : Screen("student_login_screen")
+    object StudentRegisterScreen : Screen("student_register_screen")
+    object PublisherLoginScreen : Screen("publisher_login_screen")
+    object PublisherRegisterScreen : Screen("publisher_register_screen")
     // Student
     object LoginScreen : Screen("login_screen")
     object RegisterScreen : Screen("register_screen")
     object HomeScreen : Screen("home_screen")
     object ProfileScreen : Screen("profile_screen")
+    object EditProfileScreen : Screen("edit_profile_screen")
     // Publisher
     object PubHomeScreen : Screen("pub_home_screen")
     object GeneralInfoScreen : Screen("general_info_screen")
@@ -61,14 +72,23 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.LoginScreen.route
+        startDestination = Screen.WelcomeScreen.route
     ) {
-        // Enterance
-        composable(route = Screen.LoginScreen.route) {
-            LoginScreen(navController = navController)
+        // --- GİRİŞ AKIŞI ---
+        composable(route = Screen.WelcomeScreen.route) {
+            WelcomeScreen(navController = navController)
         }
-        composable(route = Screen.RegisterScreen.route) {
-            RegisterScreen(navController = navController)
+        composable(route = Screen.StudentLoginScreen.route) {
+            StudentLoginScreen(navController = navController)
+        }
+        composable(route = Screen.StudentRegisterScreen.route) {
+            StudentRegisterScreen(navController = navController)
+        }
+        composable(route = Screen.PublisherLoginScreen.route) {
+             PublisherLoginScreen(navController = navController)
+        }
+        composable(route = Screen.PublisherRegisterScreen.route) {
+             PublisherRegisterScreen(navController = navController)
         }
 
         // ExamEntry
@@ -76,7 +96,6 @@ fun AppNavigation() {
             route = Screen.ExamEntryScreen.route,
             arguments = listOf(navArgument("examId") { type = NavType.StringType })
         ) {
-            // Bu rotaya gidildiğinde ExamEntryScreen'i göster
             ExamEntryScreen(navController = navController)
         }
 
@@ -96,6 +115,9 @@ fun AppNavigation() {
         }
         composable(route = Screen.ProfileScreen.route) {
             ProfileScreen(navController = navController)
+        }
+        composable(route = Screen.EditProfileScreen.route) {
+            EditProfileScreen(navController = navController)
         }
         composable(
             route = Screen.AnalysisDetailsScreen.route,

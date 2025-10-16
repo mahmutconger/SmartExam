@@ -2,6 +2,7 @@ package com.anlarsinsoftware.denecoz.View.StudentView
 
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -72,8 +75,21 @@ fun ProfileScreen(
                 item {
                     ProfileHeader(
                         userProfile = uiState.userProfile,
-                        attemptCount = uiState.totalAttemptsCount
+                        attemptCount = uiState.totalAttemptsCount,
+                        onProfileClick = {
+                            navController.navigate(Screen.EditProfileScreen.route)
+                        }
                     )
+                }
+
+                if (uiState.userProfile?.isProfileComplete == false) {
+                    item {
+                        ProfileCompletionReminderCard(
+                            onClick = {
+                                navController.navigate(Screen.EditProfileScreen.route)
+                            }
+                        )
+                    }
                 }
 
                 // 2. En Yüksek Net Kartları
@@ -119,19 +135,40 @@ fun ProfileScreen(
 }
 
 
-// --- YARDIMCI COMPOSABLE'LAR ---
-
 @Composable
-private fun ProfileHeader(userProfile: UserProfile?, attemptCount: Int) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        // TODO: userProfile.profileImageUrl geldiğinde AsyncImage ile değiştirilecek
-        Image(
-            painter = painterResource(id = R.drawable.profile_placeholder),
-            contentDescription = "Profil Resmi",
-            modifier = Modifier.size(100.dp).clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
+private fun ProfileHeader(userProfile: UserProfile?, attemptCount: Int, onProfileClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onProfileClick)
+        ) {
+            AsyncImage(
+                model = userProfile?.profileImageUrl,
+                placeholder = painterResource(id = R.drawable.profile_placeholder),
+                error = painterResource(id = R.drawable.profile_placeholder),
+                contentDescription = "Profil Resmi",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = "Profili Düzenle",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape)
+                    .padding(6.dp)
+            )
+        }
+
         Spacer(Modifier.height(12.dp))
+
         Text(
             text = userProfile?.name ?: "...",
             style = MaterialTheme.typography.headlineSmall,
@@ -203,5 +240,23 @@ private fun PastAttemptRow(attempt: PastAttemptSummary, onClick: () -> Unit) {
             Text(attempt.examType, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
         }
         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Detaylara Git", tint = Color.Gray)
+    }
+}
+
+@Composable
+private fun ProfileCompletionReminderCard(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp).clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Sıralamalardaki yerini gör!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Okul, ilçe ve Türkiye sıralamalarını görmek için profilini tamamla.", style = MaterialTheme.typography.bodyMedium)
+            }
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Profili Tamamla")
+        }
     }
 }

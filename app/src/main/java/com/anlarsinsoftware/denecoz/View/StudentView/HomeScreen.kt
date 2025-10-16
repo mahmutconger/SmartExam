@@ -1,6 +1,5 @@
 package com.anlarsinsoftware.denecoz.View.StudentView
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,24 +28,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
+import com.anlarsinsoftware.denecoz.Model.Student.PublisherSummary
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.HomeViewModel
-
-// --- Basit modeller (örnek veri)
-data class Publisher(val id: Int, val name: String, @DrawableRes val logo: Int)
-data class Product(
-    val id: Int,
-    val title: String,
-    val duration: String,
-    val rating: Double,
-    @DrawableRes val image: Int
-)
-
-private val samplePublishers = listOf(
-    Publisher(1, "Limit", R.drawable.logo_limit),
-    Publisher(2, "ÜçDörtBeş", R.drawable.logo_ucdortbes)
-)
 
 
 @Composable
@@ -108,7 +93,7 @@ fun HomeScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(id = R.string.welcome_greeting, "Can"),
+                            text = stringResource(id = R.string.welcome_greeting, uiState.username),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -127,8 +112,8 @@ fun HomeScreen(
 
                 // --- Search bar
                 OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.onQueryChanged(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -177,7 +162,7 @@ fun HomeScreen(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(samplePublishers) { pub ->
+                    items(uiState.publishers, key = { it.id }) { pub ->
                         PublisherItem(pub = pub)
                     }
                 }
@@ -249,7 +234,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun PublisherItem(pub: Publisher) {
+private fun PublisherItem(pub: PublisherSummary) {
     Card(
         modifier = Modifier
             .size(width = 150.dp, height = 90.dp),
@@ -262,12 +247,11 @@ private fun PublisherItem(pub: Publisher) {
                 .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = pub.logo),
+            AsyncImage(
+                model = pub.logoUrl,
                 contentDescription = pub.name,
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxSize()
+                placeholder = painterResource(id = R.drawable.logo_limit),
+                modifier = Modifier.padding(12.dp).fillMaxSize()
             )
         }
     }

@@ -2,11 +2,18 @@ package com.anlarsinsoftware.denecoz.Model.State.Student
 
 import java.util.Date
 
+// Model/Student/UserProfile.kt
 data class UserProfile(
     val uid: String = "",
-    val name: String = "Öğrenci Adı",
+    val name: String = "",
     val email: String = "",
-    val bestScores: Map<String, BestNetResult> = emptyMap()
+    val profileImageUrl: String? = null,
+    val bestScores: Map<String, BestNetResult> = emptyMap(),
+    val city: String? = null,
+    val district: String? = null,
+    val school: String? = null,
+    val educationLevel: String? = null,
+    val isProfileComplete: Boolean = false
 )
 // Profil ekranındaki bir deneme satırını temsil eder
 data class PastAttemptSummary(

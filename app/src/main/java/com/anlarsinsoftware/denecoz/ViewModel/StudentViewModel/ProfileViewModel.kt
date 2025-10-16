@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.anlarsinsoftware.denecoz.Model.State.Student.ProfileUiState
-import com.anlarsinsoftware.denecoz.Repository.AuthRepository // Veya ExamRepository, hangisinde ise
+import com.anlarsinsoftware.denecoz.Repository.AuthRepository
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
     private val examRepository: ExamRepository,
     private val auth: FirebaseAuth
 ) : ViewModel() {
@@ -38,33 +39,33 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Kullanıcı profili (en iyi skorlarla birlikte) ve geçmiş denemeleri
-            // aynı anda, paralel olarak çekiyoruz.
-            val profileDeferred = async { examRepository.getUserProfile(studentId) }
+            // Her isteği doğru uzmana yönlendiriyoruz
+            val profileDeferred = async { authRepository.getUserProfile(studentId) }
             val pastAttemptsDeferred = async { examRepository.getPastAttempts(studentId) }
 
             val profileResult = profileDeferred.await()
             val pastAttemptsResult = pastAttemptsDeferred.await()
 
-            // Artık tek bir state güncellemesi ile her şeyi ayarlayabiliriz
-            var finalState = _uiState.value.copy(isLoading = false)
+            _uiState.update { currentState ->
+                var updatedState = currentState.copy(isLoading = false)
 
-            profileResult.onSuccess { userProfile ->
-                finalState = finalState.copy(userProfile = userProfile)
-            }.onFailure { exception ->
-                finalState = finalState.copy(errorMessage = exception.message)
+                profileResult.onSuccess { userProfile ->
+                    updatedState = updatedState.copy(userProfile = userProfile)
+                }.onFailure { exception ->
+                    updatedState = updatedState.copy(errorMessage = exception.message)
+                }
+
+                pastAttemptsResult.onSuccess { attempts ->
+                    updatedState = updatedState.copy(
+                        pastAttempts = attempts,
+                        totalAttemptsCount = attempts.size
+                    )
+                }.onFailure { exception ->
+                    updatedState = updatedState.copy(errorMessage = exception.message)
+                }
+
+                updatedState
             }
-
-            pastAttemptsResult.onSuccess { attempts ->
-                finalState = finalState.copy(
-                    pastAttempts = attempts,
-                    totalAttemptsCount = attempts.size
-                )
-            }.onFailure { exception ->
-                finalState = finalState.copy(errorMessage = exception.message)
-            }
-
-            _uiState.value = finalState
         }
     }
 }

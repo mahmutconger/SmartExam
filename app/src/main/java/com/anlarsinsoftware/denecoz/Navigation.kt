@@ -11,10 +11,12 @@ import com.anlarsinsoftware.denecoz.View.Common.WelcomeScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.HomeScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.AnswerKeyEditorScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.AnswerKeyScreen
+import com.anlarsinsoftware.denecoz.View.PublisherView.EditPublisherProfileScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.GeneralInfoScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PreviewScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PubHomeScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherLoginScreen
+import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherProfileScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherRegisterScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.AnalysisDetailsScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.EditProfileScreen
@@ -40,6 +42,8 @@ sealed class Screen(val route: String) {
     // Publisher
     object PubHomeScreen : Screen("pub_home_screen")
     object GeneralInfoScreen : Screen("general_info_screen")
+    object PublisherProfileScreen : Screen("publisher_profile_screen")
+    object EditPublisherProfileScreen : Screen("edit_publisher_profile_screen")
 
     object ExamEntryScreen : Screen("exam_entry_screen/{examId}") {
         fun createRoute(examId: String) = "exam_entry_screen/$examId"
@@ -135,6 +139,12 @@ fun AppNavigation() {
         // Home
         composable(route = Screen.PubHomeScreen.route) {
             PubHomeScreen(navController = navController)
+        }
+        composable(route = Screen.PublisherProfileScreen.route) {
+            PublisherProfileScreen(navController = navController)
+        }
+        composable(route = Screen.EditPublisherProfileScreen.route) {
+            EditPublisherProfileScreen(navController = navController)
         }
 
         // General

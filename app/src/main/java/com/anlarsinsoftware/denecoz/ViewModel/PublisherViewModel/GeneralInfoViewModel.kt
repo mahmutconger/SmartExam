@@ -72,16 +72,22 @@ class GeneralInfoViewModel @Inject constructor(
                     mapOf("testName" to "Fen Bilimleri", "questionCount" to 20L) // Birleşik test
                 )
                 "AYT" -> listOf(
-                    mapOf("testName" to "Türk Dili ve Edebiyatı-Sosyal Bilimler-1", "questionCount" to 40L),
+                    mapOf("testName" to "Türk Dili ve Edebiyatı-Sosyal Bilimler-1", "questionCount" to 40L,
+                        "subSubjects" to listOf(
+                            mapOf("subjectId" to "edebiyat", "name" to "Edebiyat", "questionCount" to 24L),
+                            mapOf("subjectId" to "tarih_1", "name" to "Tarih-1", "questionCount" to 10L),
+                            mapOf("subjectId" to "cografya_1", "name" to "Coğrafya-1", "questionCount" to 6L)
+                        )
+                    ),
                     mapOf(
                         "testName" to "Sosyal Bilimler-2",
                         "questionCount" to 46L,
                         "subSubjects" to listOf(
-                            mapOf("subjectId" to "tarih", "name" to "Tarih-2", "questionCount" to 11L),
-                            mapOf("subjectId" to "cografya", "name" to "Coğrafya-2", "questionCount" to 11L),
-                            mapOf("subjectId" to "felsefe", "name" to "Felsefe Grubu", "questionCount" to 12L),
-                            mapOf("subjectId" to "din_kulturu", "name" to "Din Kültürü", "questionCount" to 6L, "isAlternative" to false),
-                            mapOf("subjectId" to "ek_felsefe", "name" to "Ek Felsefe Grubu", "questionCount" to 6L, "isAlternative" to true)
+                            mapOf("subjectId" to "tarih_2", "name" to "Tarih-2", "questionCount" to 11L),
+                            mapOf("subjectId" to "cografya_2", "name" to "Coğrafya-2", "questionCount" to 11L),
+                            mapOf("subjectId" to "felsefe_2", "name" to "Felsefe Grubu", "questionCount" to 12L),
+                            mapOf("subjectId" to "din_kulturu_2", "name" to "Din Kültürü", "questionCount" to 6L, "isAlternative" to false),
+                            mapOf("subjectId" to "ek_felsefe_2", "name" to "Ek Felsefe Grubu", "questionCount" to 6L, "isAlternative" to true)
                         )
                     ),
                     mapOf("testName" to "AYT Matematik", "questionCount" to 40L),
@@ -101,7 +107,10 @@ class GeneralInfoViewModel @Inject constructor(
                 "subjects" to subjectsList
             )
 
-            examRepository.createDraftExam(examDetails)
+            examRepository.createDraftExam(
+                examDetails = examDetails,
+                imageUri = currentState.coverImageUri
+            )
                 .onSuccess { newExamId ->
                     _uiState.update { it.copy(isLoading = false) }
                     _navigationEvent.emit(NavigationEvent.NavigateToAnswerKey(newExamId))

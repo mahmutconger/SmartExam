@@ -44,7 +44,7 @@ class AnswerKeyEditorViewModel @Inject constructor(
             SubjectRule("ek_felsefe", 5, isAlternative = true)     // Alternatif bölüm
         ),
         "Temel Matematik" to listOf(
-            SubjectRule("matematik", 30), // Soru sayıları sizin tahmininize göre ayarlanabilir
+            SubjectRule("matematik", 30),
             SubjectRule("geometri", 10)
         ),
         "Fen Bilimleri" to listOf(
@@ -56,15 +56,15 @@ class AnswerKeyEditorViewModel @Inject constructor(
         // --- AYT Kuralları ---
         "Türk Dili ve Edebiyatı-Sosyal Bilimler-1" to listOf(
             SubjectRule("edebiyat", 24),
-            SubjectRule("tarih", 10),
-            SubjectRule("cografya", 6)
+            SubjectRule("tarih_1", 10),
+            SubjectRule("cografya_1", 6)
         ),
         "Sosyal Bilimler-2" to listOf(
-            SubjectRule("tarih", 11),
-            SubjectRule("cografya", 11),
-            SubjectRule("felsefe", 12),
-            SubjectRule("din_kulturu", 6, isAlternative = false),
-            SubjectRule("ek_felsefe", 6, isAlternative = true)
+            SubjectRule("tarih_2", 11),
+            SubjectRule("cografya_2", 11),
+            SubjectRule("felsefe_2", 12),
+            SubjectRule("din_kulturu_2", 6, isAlternative = false),
+            SubjectRule("ek_felsefe_2", 6, isAlternative = true)
         ),
         "AYT Matematik" to listOf(
             SubjectRule("matematik", 30), // Tahmini

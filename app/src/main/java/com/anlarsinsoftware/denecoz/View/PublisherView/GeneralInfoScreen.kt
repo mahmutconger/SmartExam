@@ -80,7 +80,19 @@ fun GeneralInfoScreen(
                 onBack = {navController.popBackStack() }
             )
         },
-        bottomBar = { BottomNavBar() },
+        bottomBar = { BottomNavBar(
+            selectedIndex = 0,
+            onItemSelected = { index ->
+                when (index) {
+                    0 -> {  navController.navigate(Screen.PubHomeScreen.route) }
+                    // 1 -> navController.navigate(...) // TODO: Keşfet ekranı
+                    // 2 -> navController.navigate(...) // TODO: Ayarlar ekranı
+                    3 -> {
+                        navController.navigate(Screen.PublisherProfileScreen.route)
+                    }
+                }
+            }
+        ) },
         containerColor = Color(0xFFF8F9FB)
     ) { innerPadding ->
         Column(

@@ -1,8 +1,10 @@
 package com.anlarsinsoftware.denecoz.Repository.PublisherRepo
 
+import android.net.Uri
 import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.PublisherProfile
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
 import com.anlarsinsoftware.denecoz.Model.State.Student.BestNetResult
 import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
@@ -30,15 +32,17 @@ data class ExamSummary(
     val id: String = "",
     val name: String = "",
     val status: String = "",
+    val coverImageUrl : String? = null,
     @ServerTimestamp val createdAt: Date? = null
 )
 
 interface ExamRepository {
-    suspend fun createDraftExam(examDetails: Map<String, Any>): Result<String>
+    suspend fun createDraftExam(examDetails: Map<String, Any>, imageUri: Uri?): Result<String>
     suspend fun getExamDetails(examId: String): Result<ExamDetails>
     suspend fun saveAnswerKey(examId: String, booklet: String, answers: Map<String, String>): Result<Unit>
     suspend fun saveTopicDistribution(examId: String, booklet: String, topics: Map<String, String>): Result<Unit>
     suspend fun publishExam(examId: String): Result<Unit>
+    suspend fun getPublisherProfile(publisherId: String): Result<PublisherProfile>
     suspend fun getExamsForPublisher(publisherId: String): Result<List<ExamSummary>>
     suspend fun getFullExamForPreview(examId: String): Result<FullExamData>
     suspend fun getCurriculum(examType: String): Result<List<SubjectDef>>

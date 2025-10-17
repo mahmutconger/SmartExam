@@ -1,8 +1,10 @@
 package com.anlarsinsoftware.denecoz.Repository.PublisherRepo
+import android.net.Uri
 import android.util.Log
 import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
+import com.anlarsinsoftware.denecoz.Model.State.Publisher.PublisherProfile
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
 import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
@@ -15,6 +17,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.async
@@ -23,15 +26,28 @@ import javax.inject.Inject
 
 class ExamRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val storage : FirebaseStorage
 ) : ExamRepository {
 
     private val examsCollection = firestore.collection("exams")
 
-    override suspend fun createDraftExam(examDetails: Map<String, Any>): Result<String> {
+    override suspend fun createDraftExam(examDetails: Map<String, Any>, imageUri: Uri?): Result<String> {
         return try {
             val publisherId = auth.currentUser?.uid
                 ?: return Result.failure(Exception("Giriş yapmış bir yayıncı bulunamadı."))
+            val newExamDocRef = examsCollection.document()
+            val examId = newExamDocRef.id
+
+            var coverImageUrl: String? = null
+
+            if (imageUri != null) {
+                val storageRef = storage.reference.child("exam_covers/$examId/cover.jpg")
+
+                storageRef.putFile(imageUri).await()
+
+                coverImageUrl = storageRef.downloadUrl.await().toString()
+            }
 
             val fullExamData = examDetails.toMutableMap().apply {
                 put("publisherId", publisherId)
@@ -40,10 +56,14 @@ class ExamRepositoryImpl @Inject constructor(
                 put("bookletStatus", mapOf(
                     "A" to mapOf("hasAnswerKey" to false, "hasTopicDistribution" to false)
                 ))
+                if (coverImageUrl != null) {
+                    put("coverImageUrl", coverImageUrl)
+                }
             }
 
-            val documentReference = examsCollection.add(fullExamData).await()
-            Result.success(documentReference.id)
+            newExamDocRef.set(fullExamData).await()
+
+            Result.success(examId)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -459,6 +479,20 @@ class ExamRepositoryImpl @Inject constructor(
         return try {
             examsCollection.document(examId).update("status", "published").await()
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getPublisherProfile(publisherId: String): Result<PublisherProfile> {
+        return try {
+            val docSnapshot = firestore.collection("publishers").document(publisherId).get().await()
+            if (docSnapshot.exists()) {
+                val profile = docSnapshot.toObject(PublisherProfile::class.java)!!
+                Result.success(profile)
+            } else {
+                Result.failure(Exception("Yayıncı profili bulunamadı."))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

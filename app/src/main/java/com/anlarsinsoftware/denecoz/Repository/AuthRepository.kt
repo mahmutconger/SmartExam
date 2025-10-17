@@ -12,7 +12,6 @@ interface AuthRepository {
         pass: String,
         publisherName: String
     ): Result<FirebaseUser>
-
     suspend fun loginStudent(email: String, pass: String): Result<Unit>
     suspend fun loginPublisher(email: String, pass: String): Result<Unit>
     suspend fun getUserProfile(studentId: String): Result<UserProfile>
@@ -25,4 +24,5 @@ interface AuthRepository {
         school: String,
         newProfilePhotoUri: Uri?
     ): Result<Unit>
+    suspend fun updatePublisherProfile(publisherId: String, name: String, newLogoUri: Uri?): Result<Unit>
 }

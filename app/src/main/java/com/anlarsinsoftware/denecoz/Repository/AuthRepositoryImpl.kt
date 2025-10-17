@@ -134,4 +134,24 @@ class AuthRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+    override suspend fun updatePublisherProfile(publisherId: String, name: String, newLogoUri: Uri?): Result<Unit> {
+        return try {
+            var newLogoUrl: String? = null
+            if (newLogoUri != null) {
+                val storageRef = storage.reference.child("publisher_logos/$publisherId/logo.jpg")
+                storageRef.putFile(newLogoUri).await()
+                newLogoUrl = storageRef.downloadUrl.await().toString()
+            }
+
+            val updates = mutableMapOf<String, Any>("name" to name)
+            if (newLogoUrl != null) {
+                updates["logoUrl"] = newLogoUrl
+            }
+
+            firestore.collection("publishers").document(publisherId).update(updates).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -434,17 +434,16 @@ class ExamRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun saveTopicDistribution(examId: String, booklet: String, topics: Map<String, String>): Result<Unit> {
+    override suspend fun saveTopicDistribution(examId: String, booklet: String, topics: Map<String, Map<String, String>>): Result<Unit> {
         return try {
             val batch = firestore.batch()
             val topicCollection = examsCollection.document(examId)
                 .collection("booklets").document(booklet)
                 .collection("topicDistribution")
 
-            topics.forEach { (questionNumber, topic) ->
+            topics.forEach { (questionNumber, topicDataMap) ->
                 val docRef = topicCollection.document(questionNumber)
-                val data = mapOf("topicId" to topic)
-                batch.set(docRef, data)
+                batch.set(docRef, topicDataMap)
             }
 
             batch.commit().await()

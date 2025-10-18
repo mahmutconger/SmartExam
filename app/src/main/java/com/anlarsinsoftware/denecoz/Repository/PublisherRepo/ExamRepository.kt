@@ -40,7 +40,7 @@ interface ExamRepository {
     suspend fun createDraftExam(examDetails: Map<String, Any>, imageUri: Uri?): Result<String>
     suspend fun getExamDetails(examId: String): Result<ExamDetails>
     suspend fun saveAnswerKey(examId: String, booklet: String, answers: Map<String, String>): Result<Unit>
-    suspend fun saveTopicDistribution(examId: String, booklet: String, topics: Map<String, String>): Result<Unit>
+    suspend fun saveTopicDistribution(examId: String, booklet: String, topics: Map<String, Map<String, String>>): Result<Unit>
     suspend fun publishExam(examId: String): Result<Unit>
     suspend fun getPublisherProfile(publisherId: String): Result<PublisherProfile>
     suspend fun getExamsForPublisher(publisherId: String): Result<List<ExamSummary>>

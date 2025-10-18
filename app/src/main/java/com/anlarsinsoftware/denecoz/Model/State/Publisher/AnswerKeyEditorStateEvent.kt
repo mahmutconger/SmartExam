@@ -1,12 +1,15 @@
 package com.anlarsinsoftware.denecoz.Model.State.Publisher
 
+import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamDetails
+
 data class QuestionState(
     val index: Int,
     val assignedSubjectName: String? = null,
     val selectedAnswerIndex: Int? = null,
     val selectedSubSubject: String? = null,
     val selectedTopic: String? = null,
-    val isDropdownExpanded: Boolean = false
+    val isDropdownExpanded: Boolean = false,
+    val selectedTopicOriginalId: String? = null
 )
 
 data class SubjectDef(
@@ -22,6 +25,7 @@ data class SubjectDef(
 data class AnswerKeyEditorUiState(
     val isLoading: Boolean = true,
     val examId: String? = null,
+    val examDetails: ExamDetails? = null,
     val mode: EditorMode = EditorMode.ANSWER_KEY,
     val subjects: List<SubjectDef> = emptyList(),
     val questions: List<QuestionState> = emptyList(),
@@ -30,13 +34,25 @@ data class AnswerKeyEditorUiState(
 )
 
 sealed class AnswerKeyEditorEvent {
-    data class OnAnswerSelected(val questionIndex: Int, val answerIndex: Int) : AnswerKeyEditorEvent()
-    data class OnSubSubjectSelected(val questionIndex: Int, val subSubject: String) : AnswerKeyEditorEvent()
-    data class OnTopicSelected(val questionIndex: Int, val topic: String) : AnswerKeyEditorEvent()
-    data class OnToggleDropdown(val questionIndex: Int, val isExpanded: Boolean) : AnswerKeyEditorEvent()
+    data class OnAnswerSelected(val questionIndex: Int, val answerIndex: Int) :
+        AnswerKeyEditorEvent()
+
+    data class OnSubSubjectSelected(val questionIndex: Int, val subSubject: String) :
+        AnswerKeyEditorEvent()
+
+    data class OnTopicSelected(
+        val questionIndex: Int,
+        val topic: String,
+        val originalTopicId: String
+    ) : AnswerKeyEditorEvent()
+
+    data class OnToggleDropdown(val questionIndex: Int, val isExpanded: Boolean) :
+        AnswerKeyEditorEvent()
+
     data class OnSubjectToggled(val subjectName: String) : AnswerKeyEditorEvent()
     object OnConfirmClicked : AnswerKeyEditorEvent()
 }
+
 sealed class AnswerKeyEditorNavigationEvent {
     data class NavigateToPreview(val examId: String) : AnswerKeyEditorNavigationEvent()
     object NavigateBack : AnswerKeyEditorNavigationEvent()

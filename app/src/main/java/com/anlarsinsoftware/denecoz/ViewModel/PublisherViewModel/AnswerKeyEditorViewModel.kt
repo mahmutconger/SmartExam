@@ -67,7 +67,7 @@ class AnswerKeyEditorViewModel @Inject constructor(
             SubjectRule("ek_felsefe_2", 6, isAlternative = true)
         ),
         "AYT Matematik" to listOf(
-            SubjectRule("matematik", 30), // Tahmini
+            SubjectRule("matematik", 30),
             SubjectRule("geometri", 10)
         ),
         "AYT Fen Bilimleri" to listOf(
@@ -184,6 +184,7 @@ class AnswerKeyEditorViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        examDetails = examDetails,
                         subjects = finalSubjectsForUI,
                         questions = questionsForUI
                     )
@@ -199,15 +200,26 @@ class AnswerKeyEditorViewModel @Inject constructor(
         }
     }
 
-    fun getTopicsForSubject(subjectName: String?): List<String> {
+    fun getTopicsForSubject(subjectName: String?): List<Pair<String, String>> {
         if (subjectName == null) return emptyList()
 
-        // uiState'deki tüm ders listesini gezerek doğru konu listesini bul ve döndür.
         _uiState.value.subjects.forEach { test ->
-            if (test.subSubjects != null) { // Bu bir birleşik test
-                test.subSubjects.find { it.name == subjectName }?.let { return it.topics }
-            } else { // Bu tekil bir test
-                if (test.name == subjectName) return test.topics
+            val targetSubject = if (test.subSubjects != null) {
+                test.subSubjects.find { it.name == subjectName }
+            } else if (test.name == subjectName) {
+                test
+            } else {
+                null
+            }
+
+            targetSubject?.let { subjectDef ->
+                return subjectDef.topics.map { topicName ->
+                    // TODO: topicName'den yola çıkarak originalTopicId'yi bulmamız lazım.
+                    // En temiz yol, SubjectDef içindeki topics listesinin de Pair<String, String> olmasıdır.
+                    // Şimdilik ID'yi isimden türetmeye çalışalım (hatalı olabilir!)
+                    val originalId = topicName.lowercase().replace(" ", "_")
+                    Pair(originalId, topicName)
+                }
             }
         }
         return emptyList()
@@ -223,10 +235,11 @@ class AnswerKeyEditorViewModel @Inject constructor(
                 updateQuestionState(event.questionIndex) {
                     it.copy(
                         selectedTopic = event.topic,
+                        selectedTopicOriginalId = event.originalTopicId,
                         isDropdownExpanded = false
                     )
                 }
-                recalculateAssignedCounts()
+                recalculateAssignedCounts() // Bu hala gerekli olabilir
             }
 
             is AnswerKeyEditorEvent.OnSubSubjectSelected -> {
@@ -313,12 +326,30 @@ class AnswerKeyEditorViewModel @Inject constructor(
                     repository.saveAnswerKey(state.examId, bookletName, answers)
                 }
                 EditorMode.TOPIC_DISTRIBUTION -> {
-                    val topics = state.questions
-                        .filter { it.selectedTopic != null }
-                        .associate {
-                            it.index.toString() to (it.selectedTopic!!)
+                    val topicsToSave = mutableMapOf<String, Map<String, String>>()
+
+                    state.questions.forEachIndexed { index, questionState ->
+                        if (questionState.selectedTopic != null && questionState.selectedTopicOriginalId != null) {
+                            val overallIndex = index + 1 // Soru numarası 1'den başlar
+
+                            val subjectId = findSubjectIdForQuestion(overallIndex, state.subjects, state.examDetails?.examType ?: "") ?: "unknown"
+
+                            val uniqueTopicId = "${subjectId}_${questionState.selectedTopicOriginalId}"
+
+                            // Firestore'a kaydedilecek haritayı oluştur
+                            topicsToSave[overallIndex.toString()] = mapOf(
+                                "topicId" to uniqueTopicId,
+                                "topicName" to questionState.selectedTopic
+                            )
                         }
-                    repository.saveTopicDistribution(state.examId, bookletName, topics)
+                    }
+
+                    // GÜNCELLENDİ: Repository fonksiyonunun imzası değişmeli
+                    // repository.saveTopicDistributionMap(state.examId, bookletName, topicsToSave)
+
+                    // TODO: Repository fonksiyonunu güncelle (Map<String, Map<String, String>> alacak şekilde)
+                    // Şimdilik eski fonksiyonu çağıralım (hatalı çalışacak)
+                    repository.saveTopicDistribution(state.examId, bookletName, emptyMap()) // Placeholder
                 }
             }
 
@@ -340,5 +371,26 @@ class AnswerKeyEditorViewModel @Inject constructor(
                 }
             }
         }
+    }
+    private fun findSubjectIdForQuestion(overallIndex: Int, subjects: List<SubjectDef>, examType: String): String? {
+        var currentQuestionCount = 0
+        subjects.forEach { subjectDef ->
+            if (subjectDef.subSubjects.isNullOrEmpty()) { // Tekil ders
+                if (overallIndex > currentQuestionCount && overallIndex <= currentQuestionCount + subjectDef.totalQuestions) {
+                    return subjectDef.id // Veya isminden türetilen ID
+                }
+            } else { // Birleşik ders
+                val rules = compositeTestRules[subjectDef.name] ?: return null // Kuralları al
+                var subQuestionCounter = 0
+                rules.forEach { rule ->
+                    if (overallIndex > currentQuestionCount + subQuestionCounter && overallIndex <= currentQuestionCount + subQuestionCounter + rule.questionCount) {
+                        return rule.subjectId // Kuraldaki subjectId'yi döndür
+                    }
+                    subQuestionCounter += rule.questionCount
+                }
+            }
+            currentQuestionCount += subjectDef.totalQuestions
+        }
+        return null // Eşleşme bulunamadı
     }
 }

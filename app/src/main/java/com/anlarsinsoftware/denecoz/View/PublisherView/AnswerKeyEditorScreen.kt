@@ -139,7 +139,7 @@ fun AnswerKeyEditorScreen(
                                                     viewModel.onEvent(AnswerKeyEditorEvent.OnAnswerSelected(qState.index, choiceIndex))
                                                 }
                                             )
-                                        } else { // TOPIC_DISTRIBUTION modu
+                                        } else {
                                             val topicsForThisQuestion = viewModel.getTopicsForSubject(qState.assignedSubjectName)
                                             TopicQuestionRow(
                                                 displayIndex = displayIndex,
@@ -150,8 +150,14 @@ fun AnswerKeyEditorScreen(
                                                 onToggleDropdown = {
                                                     viewModel.onEvent(AnswerKeyEditorEvent.OnToggleDropdown(qState.index, !qState.isDropdownExpanded))
                                                 },
-                                                onTopicSelected = { topic ->
-                                                    viewModel.onEvent(AnswerKeyEditorEvent.OnTopicSelected(qState.index, topic))
+                                                onTopicSelected = { topicName, originalTopicId ->
+                                                    viewModel.onEvent(
+                                                        AnswerKeyEditorEvent.OnTopicSelected(
+                                                            questionIndex = qState.index,
+                                                            topic = topicName,
+                                                            originalTopicId = originalTopicId
+                                                        )
+                                                    )
                                                 }
                                             )
                                         }
@@ -209,10 +215,10 @@ private fun TopicQuestionRow(
     displayIndex: Int,
     assignedSubject: String,
     selectedTopic: String?,
-    availableTopics: List<String>,
+    availableTopics: List<Pair<String, String>>,
     onToggleDropdown: () -> Unit,
     expanded: Boolean,
-    onTopicSelected: (String) -> Unit
+    onTopicSelected: (topicName: String, originalTopicId: String) -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -247,10 +253,10 @@ private fun TopicQuestionRow(
                 }
 
                 DropdownMenu(expanded = expanded, onDismissRequest = { onToggleDropdown() }) {
-                    availableTopics.forEach { topic ->
+                    availableTopics.forEach { (topicId, topicName) ->
                         DropdownMenuItem(
-                            text = { Text(text = topic) },
-                            onClick = { onTopicSelected(topic) }
+                            text = { Text(text = topicName) },
+                            onClick = { onTopicSelected(topicName, topicId) }
                         )
                     }
                 }

@@ -61,7 +61,6 @@ class ResultsViewModel @Inject constructor(
         var overallEmpty = 0
 
         var questionCounter = 0
-        // Her bir ders için döngü başlat (Türkçe, Sosyal Bilimler, vb.)
         data.examDetails.subjects.forEach { subjectMap ->
             val testName = subjectMap["testName"] as String
             val questionCount = (subjectMap["questionCount"] as Long).toInt()
@@ -71,52 +70,48 @@ class ResultsViewModel @Inject constructor(
             var subjectIncorrect = 0
             var subjectEmpty = 0
             val topicResultsMap = mutableMapOf<String, MutableTopicResult>()
+            val topicIdToNameMap = mutableMapOf<String, String>()
 
-            // O derse ait her bir soru için döngü başlat
             for (i in 1..questionCount) {
                 val overallIndex = (questionCounter + i).toString()
 
                 val correctAnswer = data.correctAnswers[overallIndex]
                 val studentAnswer = data.studentAnswers[overallIndex]
-                val topic = data.topicDistribution[overallIndex] ?: "Diğer"
 
-                // SEÇMELİ DERS MANTIĞI: Eğer bu dersin alt konuları varsa ve öğrenci
-                // yanlış seçeneği çözmüşse, o soruyu analiz dışında bırak.
-                val subjectIdOfQuestion = subSubjects?.find { it["name"] == topic }?.get("subjectId") as? String
+                val topicInfo = data.topicDistribution[overallIndex] as? Map<String, String>
+                val uniqueTopicId = topicInfo?.get("topicId") ?: "diger_${overallIndex}"
+                val topicNameForDisplay = topicInfo?.get("topicName") ?: "Diğer"
+                topicIdToNameMap.putIfAbsent(uniqueTopicId, topicNameForDisplay)
+                val subjectIdOfQuestion = uniqueTopicId.substringBeforeLast('_')
                 val isAlternative = subSubjects?.find { it["subjectId"] == subjectIdOfQuestion }?.get("isAlternative") as? Boolean
-                if (isAlternative != null && subjectIdOfQuestion != data.studentAlternativeChoice) {
-                    continue // Bu soruyu atla, çünkü öğrenci bu seçmeli dersi çözmedi.
-                }
 
-                // Cevapları karşılaştır
+                if (isAlternative != null && subjectIdOfQuestion != data.studentAlternativeChoice) {
+                    continue
+                }
                 when {
                     studentAnswer == null || studentAnswer == "-" -> {
                         subjectEmpty++
-                        val topicResult = topicResultsMap.getOrPut(topic) { MutableTopicResult() }
+                        val topicResult = topicResultsMap.getOrPut(uniqueTopicId) { MutableTopicResult() }
                         topicResult.empty++
                     }
                     studentAnswer == correctAnswer -> {
                         subjectCorrect++
-                        val topicResult = topicResultsMap.getOrPut(topic) { MutableTopicResult() }
+                        val topicResult = topicResultsMap.getOrPut(uniqueTopicId) { MutableTopicResult() }
                         topicResult.correct++
                     }
                     else -> {
                         subjectIncorrect++
-                        val topicResult = topicResultsMap.getOrPut(topic) { MutableTopicResult() }
+                        val topicResult = topicResultsMap.getOrPut(uniqueTopicId) { MutableTopicResult() }
                         topicResult.incorrect++
                     }
                 }
             }
 
-            // Dersin netini hesapla
             val subjectNet = subjectCorrect - (subjectIncorrect / 4.0)
-
-            // Toplam D/Y/B sayılarını güncelle
             overallCorrect += subjectCorrect
             overallIncorrect += subjectIncorrect
             overallEmpty += subjectEmpty
 
-            // O derse ait sonuca ulaş
             finalSubjectResults.add(
                 SubjectResult(
                     subjectName = testName,
@@ -124,19 +119,21 @@ class ResultsViewModel @Inject constructor(
                     incorrect = subjectIncorrect,
                     empty = subjectEmpty,
                     net = subjectNet,
-                    // Geçici MutableTopicResult'ları kalıcı TopicResult'lara dönüştür
-                    topicResults = topicResultsMap.map { (name, result) ->
-                        TopicResult(name, result.correct, result.incorrect, result.empty)
-                    }.sortedBy { it.topicName } // Konuları alfabetik sırala
+                    topicResults = topicResultsMap.map { (uniqueId, result) ->
+                        TopicResult(
+                            topicName = topicIdToNameMap[uniqueId] ?: "Diğer",
+                            correct = result.correct,
+                            incorrect = result.incorrect,
+                            empty = result.empty
+                        )
+                    }.sortedBy { it.topicName }
                 )
             )
             questionCounter += questionCount
         }
 
-        // Toplam neti hesapla
         val overallNet = overallCorrect - (overallIncorrect / 4.0)
 
-        // Tamamlanmış, dolu bir UiState nesnesi döndür
         return ResultsUiState(
             isLoading = false,
             examName = data.examDetails.name,

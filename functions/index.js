@@ -7,8 +7,11 @@ const db = admin.firestore();
 /**
  * C:\Users\CanCONGER\AndroidStudioProjects\DeneCoz
  * firebase deploy --only functions
- * -------
- * 'attempts' koleksiyonuna yeni bir kayıt eklendiğinde tetiklenir.
+ */
+
+/**
+ * 'attempts' koleksiyonuna yeni bir kayıt eklendiğinde tetiklenir ve
+ * kullanıcının genel konu başarılarını günceller.
  */
 exports.updateUserTopicPerformance = functions.firestore
     .document("attempts/{attemptId}")
@@ -51,9 +54,10 @@ exports.updateUserTopicPerformance = functions.firestore
             correctAnswersSnapshot.docs.map((doc) => [
               doc.id, doc.data().correctAnswer,
             ]));
+            
         const topicDistribution = Object.fromEntries(
             topicDistSnapshot.docs.map((doc) => [
-              doc.id, doc.data().topicId,
+              doc.id, doc.data(), 
             ]));
 
         const examSubjects = examDetailsSnapshot.data().subjects || [];
@@ -61,52 +65,60 @@ exports.updateUserTopicPerformance = functions.firestore
             .map((s) => s.subSubjects)
             .find((ss) => ss !== undefined) || [];
 
+        
         const topicPerformanceDelta = {};
 
         for (const questionIndex in topicDistribution) {
           if (Object.prototype.hasOwnProperty.call(
               topicDistribution, questionIndex)) {
-            const topicName = topicDistribution[questionIndex];
+
+            const topicInfo = topicDistribution[questionIndex];
+            const uniqueTopicId = topicInfo?.topicId || `diger_${questionIndex}`;
+            const topicNameForDisplay = topicInfo?.topicName || "Diğer";
+        
+
             const studentAnswer = answers[questionIndex];
             const correctAnswer = correctAnswers[questionIndex];
 
-            const subjectInfo = subSubjects.find((ss) => ss.name === topicName);
+            const subjectIdOfQuestion = uniqueTopicId.substring(0, uniqueTopicId.lastIndexOf("_"));
+            const subjectInfo = subSubjects.find((ss) => ss.subjectId === subjectIdOfQuestion);
+
             if (
               subjectInfo?.isAlternative !== undefined &&
               subjectInfo.subjectId !== alternativeChoice
             ) {
               continue;
             }
-
-            if (!topicPerformanceDelta[topicName]) {
-              topicPerformanceDelta[topicName] = {
-                correct: 0, incorrect: 0, empty: 0,
+            if (!topicPerformanceDelta[uniqueTopicId]) {
+              topicPerformanceDelta[uniqueTopicId] = {
+                correct: 0, incorrect: 0, empty: 0, name: topicNameForDisplay,
               };
             }
 
             if (studentAnswer === "-" || !studentAnswer) {
-              topicPerformanceDelta[topicName].empty += 1;
+              topicPerformanceDelta[uniqueTopicId].empty += 1;
             } else if (studentAnswer === correctAnswer) {
-              topicPerformanceDelta[topicName].correct += 1;
+              topicPerformanceDelta[uniqueTopicId].correct += 1;
             } else {
-              topicPerformanceDelta[topicName].incorrect += 1;
+              topicPerformanceDelta[uniqueTopicId].incorrect += 1;
             }
           }
         }
 
         const batch = db.batch();
 
-        for (const topicName in topicPerformanceDelta) {
+        for (const uniqueTopicId in topicPerformanceDelta) {
           if (Object.prototype.hasOwnProperty.call(
-              topicPerformanceDelta, topicName)) {
-            const delta = topicPerformanceDelta[topicName];
-            const docId = `${studentId}_${topicName}`;
+              topicPerformanceDelta, uniqueTopicId)) {
+            const delta = topicPerformanceDelta[uniqueTopicId];
+            const docId = `${studentId}_${uniqueTopicId}`;
             const performanceDocRef =
               db.collection("userTopicPerformance").doc(docId);
 
             batch.set(performanceDocRef, {
               studentId: studentId,
-              topicName: topicName,
+              topicId: uniqueTopicId, 
+              topicName: delta.name, 
               totalCorrect: admin.firestore.FieldValue.increment(delta.correct),
               totalIncorrect:
                 admin.firestore.FieldValue.increment(delta.incorrect),
@@ -164,7 +176,7 @@ exports.updateBestNetScoreOnCreate = functions.firestore
         const newNet = correctCount - (incorrectCount / 4.0);
 
         // --- 2. Transaction ile rekoru güvenli bir şekilde güncelle ---
-        const userDocRef = db.collection("users").doc(studentId);
+        const userDocRef = db.collection("students").doc(studentId);
         return db.runTransaction(async (transaction) => {
           const userDoc = await transaction.get(userDocRef);
           if (!userDoc.exists) return;
@@ -205,7 +217,7 @@ exports.recalculateBestNetScoreOnDelete = functions.firestore
       }
 
       try {
-        const userDocRef = db.collection("users").doc(studentId);
+        const userDocRef = db.collection("students").doc(studentId);
         const userDoc = await userDocRef.get();
         if (!userDoc.exists) return null;
 

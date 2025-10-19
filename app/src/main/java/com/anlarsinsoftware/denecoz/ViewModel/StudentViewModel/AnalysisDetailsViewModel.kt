@@ -27,7 +27,7 @@ class AnalysisDetailsViewModel @Inject constructor(
 
     private val examId: String = savedStateHandle.get("examId")!!
     private val attemptId: String = savedStateHandle.get("attemptId")!!
-    private val topicName: String = savedStateHandle.get("topicName")!!
+    private val uniqueTopicId: String = savedStateHandle.get("topicName")!!
 
     init {
         loadAndFilterTopicDetails()
@@ -35,7 +35,7 @@ class AnalysisDetailsViewModel @Inject constructor(
 
     private fun loadAndFilterTopicDetails() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, topicName = topicName) }
+            _uiState.update { it.copy(isLoading = true, topicName = "Yükleniyor...") }
 
             repository.getAnalysisData(examId, attemptId)
                 .onSuccess { data ->
@@ -43,26 +43,39 @@ class AnalysisDetailsViewModel @Inject constructor(
                     val incorrect = mutableListOf<QuestionDetail>()
                     val empty = mutableListOf<QuestionDetail>()
 
+                    var displayTopicName: String? = null
+
+                    data.topicDistribution.forEach { (questionIndexStr, topicInfoMapAny) ->
+                        val topicInfoMap = topicInfoMapAny as? Map<String, String>
+                        val currentTopicName = topicInfoMap?.get("topicName")
+                        val currentTopicId = topicInfoMap?.get("topicId")
 
 
-                    // Tüm soruları gez, sadece bizim konumuzla ilgili olanları işle
-                    data.topicDistribution.forEach { (questionIndexStr, topic) ->
-                        if (topic == topicName) {
+                        if (currentTopicId == uniqueTopicId) {
+
+                            if (displayTopicName == null) {
+                                displayTopicName = currentTopicName
+                            }
+
                             val questionIndex = questionIndexStr.toInt()
                             val studentAnswer = data.studentAnswers[questionIndexStr]
                             val correctAnswer = data.correctAnswers[questionIndexStr] ?: "?"
-
                             val detail = QuestionDetail(number = questionIndex, correctAnswer = correctAnswer)
 
-
-
                             when {
-                                studentAnswer == null || studentAnswer == "-" -> empty.add(detail)
-                                studentAnswer == correctAnswer -> correct.add(detail)
-                                else -> incorrect.add(detail)
+                                studentAnswer == null || studentAnswer == "-" -> {
+                                    empty.add(detail)
+                                }
+                                studentAnswer == correctAnswer -> {
+                                    correct.add(detail)
+                                }
+                                else -> {
+                                    incorrect.add(detail)
+                                }
                             }
                         }
                     }
+
                     val totalQuestionsInTopic = correct.size + incorrect.size + empty.size
                     val successRate = if (totalQuestionsInTopic > 0) {
                         correct.size.toFloat() / totalQuestionsInTopic
@@ -73,6 +86,7 @@ class AnalysisDetailsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            topicName = displayTopicName ?: "Bilinmeyen Konu",
                             correctQuestions = correct,
                             incorrectQuestions = incorrect,
                             emptyQuestions = empty,
@@ -81,16 +95,17 @@ class AnalysisDetailsViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { /* Hata yönetimi */ }
+                .onFailure { exception ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = exception.message)}
+                }
 
             val studentId = auth.currentUser?.uid
             if (studentId != null) {
-                repository.getHistoricalTopicPerformance(studentId, topicName)
+                repository.getHistoricalTopicPerformance(studentId, uniqueTopicId)
                     .onSuccess { performance ->
                         _uiState.update { it.copy(historicalPerformance = performance) }
                     }
                     .onFailure {
-                        Log.e("ResultsVM", "Genel başarı çekilemedi: ${it.message}")
                     }
             }
         }

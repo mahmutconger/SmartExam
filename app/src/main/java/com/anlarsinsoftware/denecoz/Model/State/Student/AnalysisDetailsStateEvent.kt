@@ -10,6 +10,7 @@ data class QuestionDetail(
 data class AnalysisDetailsUiState(
     val isLoading: Boolean = true,
     val topicName: String = "",
+    val errorMessage : Any? = null,
     val correctQuestions: List<QuestionDetail> = emptyList(),
     val incorrectQuestions: List<QuestionDetail> = emptyList(),
     val emptyQuestions: List<QuestionDetail> = emptyList(),

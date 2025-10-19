@@ -52,7 +52,7 @@ interface ExamRepository {
     suspend fun getPublishedExams(): Result<List<PublishedExamSummary>>
     suspend fun saveStudentAttempt(examId: String, bookletChoice: String, answers: Map<Int, Int?>, alternativeChoice: String?): Result<String>
     suspend fun getAnalysisData(examId: String, attemptId: String): Result<AnalysisData>
-    suspend fun getHistoricalTopicPerformance(studentId: String, topicName: String): Result<HistoricalTopicPerformance>
+    suspend fun getHistoricalTopicPerformance(studentId: String, uniqueTopicId: String): Result<HistoricalTopicPerformance>
     suspend fun getUserProfile(studentId: String): Result<UserProfile>
     suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>>
     suspend fun getPublishers(): Result<List<PublisherSummary>>

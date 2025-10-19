@@ -3,6 +3,7 @@ import android.net.Uri
 import android.util.Log
 import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Publisher.FullExamData
+import com.anlarsinsoftware.denecoz.Model.Publisher.TopicRef
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.PublisherProfile
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
@@ -134,9 +135,13 @@ class ExamRepositoryImpl @Inject constructor(
             for (subjectDoc in subjectsSnapshot.documents) {
                 val subjectName = subjectDoc.getString("name") ?: ""
 
-                // Her dersin altındaki konuları çek
                 val topicsSnapshot = subjectDoc.reference.collection("topics").get().await()
-                val topicsList = topicsSnapshot.documents.map { it.getString("name") ?: "" }
+                val topicsList = topicsSnapshot.documents.map { topicDoc ->
+                    TopicRef(
+                        id = topicDoc.id,
+                        name = topicDoc.getString("name") ?: ""
+                    )
+                }
 
                 subjectDefs.add(
                     SubjectDef(
@@ -291,7 +296,9 @@ class ExamRepositoryImpl @Inject constructor(
 
             // 4. Gelen verileri temiz Map'lere dönüştürelim.
             val correctAnswers = correctAnswersSnapshot.documents.associate { it.id to (it.getString("correctAnswer") ?: "") }
-            val topicDistribution = topicDistSnapshot.documents.associate { it.id to (it.getString("topicId") ?: "") }
+            val topicDistribution: Map<String, Map<String, Any>> = topicDistSnapshot.documents.associate { doc ->
+                doc.id to (doc.data ?: emptyMap<String, Any>())
+            }
 
             // 5. Tüm verileri tek bir pakette toplayalım.
             val analysisData = AnalysisData(
@@ -310,9 +317,8 @@ class ExamRepositoryImpl @Inject constructor(
     }
 
 
-    override suspend fun getHistoricalTopicPerformance(studentId: String, topicName: String): Result<HistoricalTopicPerformance> {
-        return try {
-            val docId = "${studentId}_${topicName}"
+    override suspend fun getHistoricalTopicPerformance(studentId: String, uniqueTopicId: String): Result<HistoricalTopicPerformance> {        return try {
+            val docId = "${studentId}_${uniqueTopicId}"
             val docSnapshot = firestore.collection("userTopicPerformance").document(docId).get().await()
 
             if (docSnapshot.exists()) {

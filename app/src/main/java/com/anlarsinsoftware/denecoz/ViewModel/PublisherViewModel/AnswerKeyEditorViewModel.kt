@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.anlarsinsoftware.denecoz.Model.Publisher.SubjectRule
+import com.anlarsinsoftware.denecoz.Model.Publisher.TopicRef
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEditorEvent
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEditorNavigationEvent
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEditorUiState
@@ -140,6 +141,7 @@ class AnswerKeyEditorViewModel @Inject constructor(
 
                         finalSubjectsForUI.add(
                             SubjectDef(
+                                id = testName.lowercase().replace(" ", "_"),
                                 name = testName,
                                 totalQuestions = totalQuestionCount,
                                 topics = emptyList(),
@@ -200,7 +202,7 @@ class AnswerKeyEditorViewModel @Inject constructor(
         }
     }
 
-    fun getTopicsForSubject(subjectName: String?): List<Pair<String, String>> {
+    fun getTopicsForSubject(subjectName: String?): List<TopicRef> {
         if (subjectName == null) return emptyList()
 
         _uiState.value.subjects.forEach { test ->
@@ -211,15 +213,8 @@ class AnswerKeyEditorViewModel @Inject constructor(
             } else {
                 null
             }
-
             targetSubject?.let { subjectDef ->
-                return subjectDef.topics.map { topicName ->
-                    // TODO: topicName'den yola çıkarak originalTopicId'yi bulmamız lazım.
-                    // En temiz yol, SubjectDef içindeki topics listesinin de Pair<String, String> olmasıdır.
-                    // Şimdilik ID'yi isimden türetmeye çalışalım (hatalı olabilir!)
-                    val originalId = topicName.lowercase().replace(" ", "_")
-                    Pair(originalId, topicName)
-                }
+                return subjectDef.topics
             }
         }
         return emptyList()
@@ -239,7 +234,6 @@ class AnswerKeyEditorViewModel @Inject constructor(
                         isDropdownExpanded = false
                     )
                 }
-                recalculateAssignedCounts() // Bu hala gerekli olabilir
             }
 
             is AnswerKeyEditorEvent.OnSubSubjectSelected -> {
@@ -281,26 +275,6 @@ class AnswerKeyEditorViewModel @Inject constructor(
         validateForm()
     }
 
-    private fun recalculateAssignedCounts() {
-        _uiState.update { currentState ->
-            val updatedSubjects = currentState.subjects.map { subject ->
-                val count = if (subject.subSubjects != null) {
-                    // Bu bir birleşik test ise, tüm alt derslerin konularını içeren tek bir liste oluştur
-                    val allTopicsInCompositeTest = subject.subSubjects.flatMap { it.topics }
-                    currentState.questions.count { q ->
-                        allTopicsInCompositeTest.contains(q.selectedTopic)
-                    }
-                } else {
-                    // Bu tekil bir test
-                    currentState.questions.count { q ->
-                        subject.topics.contains(q.selectedTopic)
-                    }
-                }
-                subject.copy(assignedCount = count)
-            }
-            currentState.copy(subjects = updatedSubjects)
-        }
-    }
 
     private fun validateForm() {
         val state = _uiState.value
@@ -344,12 +318,11 @@ class AnswerKeyEditorViewModel @Inject constructor(
                         }
                     }
 
-                    // GÜNCELLENDİ: Repository fonksiyonunun imzası değişmeli
-                    // repository.saveTopicDistributionMap(state.examId, bookletName, topicsToSave)
-
-                    // TODO: Repository fonksiyonunu güncelle (Map<String, Map<String, String>> alacak şekilde)
-                    // Şimdilik eski fonksiyonu çağıralım (hatalı çalışacak)
-                    repository.saveTopicDistribution(state.examId, bookletName, emptyMap()) // Placeholder
+                    repository.saveTopicDistribution(
+                        examId = state.examId,
+                        booklet = bookletName,
+                        topics = topicsToSave // Boş harita yerine hazırladığımız veriyi gönder
+                    )
                 }
             }
 

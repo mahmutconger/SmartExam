@@ -1,5 +1,6 @@
 package com.anlarsinsoftware.denecoz.Model.State.Publisher
 
+import com.anlarsinsoftware.denecoz.Model.Publisher.TopicRef
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamDetails
 
 data class QuestionState(
@@ -13,10 +14,10 @@ data class QuestionState(
 )
 
 data class SubjectDef(
-    val id: String = "",
+    val id: String,
     val name: String,
     val totalQuestions: Int,
-    val topics: List<String>,
+    val topics: List<TopicRef> = emptyList(),
     val isExpanded: Boolean = false,
     val assignedCount: Int = 0,
     val subSubjects: List<SubjectDef>? = null

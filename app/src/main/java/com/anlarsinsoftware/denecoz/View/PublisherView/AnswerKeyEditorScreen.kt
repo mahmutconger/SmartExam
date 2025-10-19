@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.anlarsinsoftware.denecoz.Model.Publisher.TopicRef
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEditorEvent
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.AnswerKeyEditorNavigationEvent
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.EditorMode
@@ -215,7 +216,7 @@ private fun TopicQuestionRow(
     displayIndex: Int,
     assignedSubject: String,
     selectedTopic: String?,
-    availableTopics: List<Pair<String, String>>,
+    availableTopics: List<TopicRef>,
     onToggleDropdown: () -> Unit,
     expanded: Boolean,
     onTopicSelected: (topicName: String, originalTopicId: String) -> Unit
@@ -253,10 +254,10 @@ private fun TopicQuestionRow(
                 }
 
                 DropdownMenu(expanded = expanded, onDismissRequest = { onToggleDropdown() }) {
-                    availableTopics.forEach { (topicId, topicName) ->
+                    availableTopics.forEach { topicRef ->
                         DropdownMenuItem(
-                            text = { Text(text = topicName) },
-                            onClick = { onTopicSelected(topicName, topicId) }
+                            text = { Text(text = topicRef.name) },
+                            onClick = { onTopicSelected(topicRef.name, topicRef.id) }
                         )
                     }
                 }

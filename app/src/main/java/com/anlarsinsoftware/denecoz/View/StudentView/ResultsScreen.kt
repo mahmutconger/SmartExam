@@ -53,15 +53,14 @@ fun ResultsScreen(
                     )
                 }
 
-                // GÜNCELLENMİŞ BÖLÜM: Artık her ders için genişletilebilir bir kart listeliyoruz
                 items(uiState.subjectResults, key = { it.subjectName }) { subjectResult ->
                     SubjectResultCard(
                         result = subjectResult,
-                        examId = viewModel.examId, // ViewModel'dan ID'leri alıyoruz
+                        examId = viewModel.examId,
                         attemptId = viewModel.attemptId,
-                        onTopicClick = { topicName ->
+                        onTopicClick = { uniqueId ->
                             navController.navigate(
-                                Screen.AnalysisDetailsScreen.createRoute(viewModel.examId, viewModel.attemptId, topicName)
+                                Screen.AnalysisDetailsScreen.createRoute(viewModel.examId, viewModel.attemptId, uniqueId)
                             )
                         }
                     )
@@ -84,7 +83,6 @@ fun ResultsScreen(
     }
 }
 
-// --- YARDIMCI COMPOSABLE'LAR (Bu fonksiyonları dosyanın en altına ekle) ---
 
 @Composable
 private fun OverallSummaryCard(examName: String, correct: Int, incorrect: Int, empty: Int, net: Double) {
@@ -115,7 +113,7 @@ private fun SubjectResultCard(
     result: SubjectResult,
     examId: String,
     attemptId: String,
-    onTopicClick: (topicName: String) -> Unit
+    onTopicClick: (uniqueTopicId: String) -> Unit
 ) {
     // Her kart kendi "genişletilme" durumunu kendisi yönetir.
     var isExpanded by remember { mutableStateOf(false) }
@@ -162,7 +160,7 @@ private fun SubjectResultCard(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onTopicClick(topic.topicName) },
+                                    .clickable { onTopicClick(topic.uniqueTopicId) },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(topic.topicName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)

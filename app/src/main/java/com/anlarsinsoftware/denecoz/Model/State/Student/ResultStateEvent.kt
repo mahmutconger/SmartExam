@@ -3,6 +3,7 @@ package com.anlarsinsoftware.denecoz.Model.State.Student
 // --- ANALİZ SONUÇLARINI TUTACAK MODELLER ---
 
 data class TopicResult(
+    val uniqueTopicId: String,
     val topicName: String,
     val correct: Int,
     val incorrect: Int,

@@ -121,6 +121,7 @@ class ResultsViewModel @Inject constructor(
                     net = subjectNet,
                     topicResults = topicResultsMap.map { (uniqueId, result) ->
                         TopicResult(
+                            uniqueTopicId = uniqueId,
                             topicName = topicIdToNameMap[uniqueId] ?: "Diğer",
                             correct = result.correct,
                             incorrect = result.incorrect,

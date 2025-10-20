@@ -1,9 +1,11 @@
 package com.anlarsinsoftware.denecoz.data.repository
 
 import android.net.Uri
+import com.anlarsinsoftware.denecoz.Model.Province
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.UserRole
 import com.anlarsinsoftware.denecoz.Repository.AuthRepository
+import com.anlarsinsoftware.denecoz.Services.ApiService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -14,8 +16,22 @@ import javax.inject.Inject
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    private val apiService: ApiService
 ) : AuthRepository {
+
+    override suspend fun getProvincesAndDistricts(): Result<List<Province>> {
+        return try {
+            val response = apiService.getAllProvinces()
+            if (response.status == "OK") {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception("API hatası: ${response.status}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun registerStudent(email: String, pass: String, name: String /*, profilePhotoUri: Uri? */): Result<FirebaseUser> {
         return try {

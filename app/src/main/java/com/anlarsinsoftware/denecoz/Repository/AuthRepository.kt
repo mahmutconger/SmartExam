@@ -1,6 +1,7 @@
 package com.anlarsinsoftware.denecoz.Repository
 
 import android.net.Uri
+import com.anlarsinsoftware.denecoz.Model.Province
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.UserRole
 import com.google.firebase.auth.FirebaseUser
@@ -25,4 +26,5 @@ interface AuthRepository {
         newProfilePhotoUri: Uri?
     ): Result<Unit>
     suspend fun updatePublisherProfile(publisherId: String, name: String, newLogoUri: Uri?): Result<Unit>
+    suspend fun getProvincesAndDistricts(): Result<List<Province>>
 }

@@ -3,6 +3,7 @@ package com.anlarsinsoftware.denecoz.di
 import com.anlarsinsoftware.denecoz.Repository.AuthRepository
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepositoryImpl
+import com.anlarsinsoftware.denecoz.Services.ApiService
 import com.anlarsinsoftware.denecoz.data.repository.AuthRepositoryImpl
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,6 +12,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -40,12 +43,30 @@ object AppModule {
     fun provideAuthRepository(
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
-        storage: FirebaseStorage
+        storage: FirebaseStorage,
+        apiService: ApiService
     ): AuthRepository {
-        return AuthRepositoryImpl(auth, firestore, storage)
+        return AuthRepositoryImpl(auth, firestore, storage,apiService)
     }
 
     @Provides
     @Singleton
     fun provideExamRepository(impl: ExamRepositoryImpl): ExamRepository = impl
+
+    private const val BASE_URL = "https://api.turkiyeapi.dev/"
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideApiService(retrofit: Retrofit): ApiService {
+        return retrofit.create(ApiService::class.java)
+    }
 }

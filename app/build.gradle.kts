@@ -77,6 +77,11 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
 
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // Gson (Retrofit zaten getirebilir ama eklemek garanti olur)
+    implementation("com.google.code.gson:gson:2.10.1")
     //Icons
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     // Activity-Compose

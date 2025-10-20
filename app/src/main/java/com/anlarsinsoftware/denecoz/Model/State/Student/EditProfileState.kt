@@ -1,9 +1,11 @@
 package com.anlarsinsoftware.denecoz.Model.State.Student
 
 import android.net.Uri
+import com.anlarsinsoftware.denecoz.Model.Province
 
 data class EditProfileUiState(
     val isLoading: Boolean = false,
+    val isSaving: Boolean = false,
     val errorMessage: String? = null,
     val name: String = "",
     val profileImageUrl: String? = null,
@@ -11,11 +13,12 @@ data class EditProfileUiState(
     val educationLevel: String = "",
     val city: String = "",
     val district: String = "",
-    val school: String = "",
+    val schools: String = "",
     val educationLevels: List<String> = listOf("Lise", "Mezun", "Ortaokul"),
-    val cities: List<String> = listOf("Manisa", "İzmir", "Ankara"), // TODO: Bu veriyi Firestore'dan çek
+    val allProvincesData: List<Province> = emptyList(),
+    val cities: List<String> = emptyList(),
     val districts: List<String> = emptyList(),
-    val schools: List<String> = emptyList()
+    val isSaveButtonEnabled: Boolean = false
 )
 
 sealed class EditProfileEvent {

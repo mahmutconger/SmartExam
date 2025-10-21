@@ -7,6 +7,7 @@ import com.anlarsinsoftware.denecoz.Model.State.Publisher.GeneralInfoEvent
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.GeneralInfoUiState
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.NavigationEvent
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GeneralInfoViewModel @Inject constructor(
-    private val examRepository: ExamRepository
+    private val examRepository: ExamRepository,
+    private val auth : FirebaseAuth
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GeneralInfoUiState())
@@ -27,6 +29,7 @@ class GeneralInfoViewModel @Inject constructor(
     private val _navigationEvent = MutableSharedFlow<NavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
+    private val publisherName = auth.currentUser?.displayName
     fun onEvent(event: GeneralInfoEvent) {
         when (event) {
             is GeneralInfoEvent.OnExamNameChanged -> _uiState.update { it.copy(examName = event.name) }
@@ -104,7 +107,10 @@ class GeneralInfoViewModel @Inject constructor(
                 "name" to currentState.examName,
                 "publicationDate" to currentState.publicationDate,
                 "examType" to currentState.examType,
-                "subjects" to subjectsList
+                "subjects" to subjectsList,
+                "difficulty" to currentState.difficulty,
+                "solveCount" to 0L,
+                "publisherName" to publisherName.toString()
             )
 
             examRepository.createDraftExam(

@@ -9,6 +9,7 @@ data class GeneralInfoUiState(
     val coverImageUri: Uri? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val difficulty: String = "",
     val isFormValid: Boolean = false
 )
 

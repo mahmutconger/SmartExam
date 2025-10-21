@@ -84,6 +84,19 @@ class ExamRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun hasUserSolvedExam(studentId: String, examId: String): Result<Boolean> {
+        return try {
+            val snapshot = firestore.collection("attempts")
+                .whereEqualTo("studentId", studentId)
+                .whereEqualTo("examId", examId)
+                .limit(1) // Sadece 1 kayıt bulmamız yeterli
+                .get().await()
+            Result.success(!snapshot.isEmpty) // Kayıt varsa true, yoksa false döner
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>> {
         return try {
             Log.d("PROFILE_DEBUG", "getPastAttempts fonksiyonu çalıştı. Aranan studentId: $studentId")

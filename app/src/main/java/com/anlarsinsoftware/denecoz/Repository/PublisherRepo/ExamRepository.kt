@@ -18,9 +18,18 @@ import java.util.Date
 data class ExamDetails(
     val name: String = "",
     val examType: String = "",
-    val bookletType: String = "",
+    // bookletType'ı GeneralInfo'dan kaldırdığımız için buradan da kaldırabiliriz,
+    // artık bookletStatus haritasında yönetiliyor.
+    // val bookletType: String = "",
     val publicationDate: String = "",
-    val subjects: List<Map<String, Any>> = emptyList()
+    val subjects: List<Map<String, Any>> = emptyList(),
+    val publisherId: String = "",
+    val publisherName: String = "",
+    val coverImageUrl: String? = null,
+    val difficulty: String = "Orta",
+    val solveCount: Long = 0,
+    val status: String = "draft"
+    // ... (createdAt vb. eklenebilir)
 )
 
 data class ExamStatus(
@@ -56,4 +65,5 @@ interface ExamRepository {
     suspend fun getUserProfile(studentId: String): Result<UserProfile>
     suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>>
     suspend fun getPublishers(): Result<List<PublisherSummary>>
+    suspend fun hasUserSolvedExam(studentId: String, examId: String): Result<Boolean>
 }

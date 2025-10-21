@@ -137,7 +137,8 @@ exports.updateUserTopicPerformance = functions.firestore
     });
 
 // =========================================================================
-// FONKSİYON 1: YENİ BİR DENEME KAYDI OLUŞTURULDUĞUNDA EN YÜKSEK NETİ GÜNCELLE
+// FONKSİYON 1: YENİ BİR DENEME KAYDI OLUŞTURULDUĞUNDA
+// KİŞİSEL REKORU VE TÜM LİDER TABLOLARINI GÜNCELLE
 // =========================================================================
 exports.updateBestNetScoreOnCreate = functions.firestore
     .document("attempts/{attemptId}")
@@ -145,7 +146,14 @@ exports.updateBestNetScoreOnCreate = functions.firestore
       const attemptData = snapshot.data();
       if (!attemptData) return null;
 
-      const {studentId, examId, booklet, answers} = attemptData;
+      // attempt dökümanından 'examType'ı da alıyoruz
+      const {studentId, examId, booklet, answers, examType} = attemptData;
+
+      // Gerekli veriler yoksa fonksiyonu durdur
+      if (!studentId || !examId || !booklet || !examType) {
+        console.error("Attempt data is missing critical fields.");
+        return null;
+      }
 
       try {
         // --- 1. Yeni denemenin netini hesapla ---
@@ -153,17 +161,13 @@ exports.updateBestNetScoreOnCreate = functions.firestore
         const correctAnswersPromise = examDocRef
             .collection("booklets").doc(booklet)
             .collection("answerKey").get();
-        const examDetailsPromise = examDocRef.get();
 
-        const [correctAnswersSnapshot, examDetailsSnapshot] =
-          await Promise.all([correctAnswersPromise, examDetailsPromise]);
-
-        if (!examDetailsSnapshot.exists) return null;
+        // Artık examDetails'i çekmemize gerek yok, examType'ı attempt'ten aldık
+        const correctAnswersSnapshot = await correctAnswersPromise;
 
         const correctAnswers = Object.fromEntries(
             correctAnswersSnapshot.docs.map((doc) => [doc.id, doc.data().correctAnswer])
         );
-        const examType = examDetailsSnapshot.data().examType; // TYT, AYT vs.
 
         let correctCount = 0;
         let incorrectCount = 0;
@@ -174,22 +178,70 @@ exports.updateBestNetScoreOnCreate = functions.firestore
           }
         }
         const newNet = correctCount - (incorrectCount / 4.0);
+        console.log(`New attempt calculated. Student: ${studentId}, Exam: ${examId}, Type: ${examType}, Net: ${newNet}`);
 
-        // --- 2. Transaction ile rekoru güvenli bir şekilde güncelle ---
+        // --- 2. Transaction ile TÜM rekorları güvenli bir şekilde güncelle ---
         const userDocRef = db.collection("students").doc(studentId);
-        return db.runTransaction(async (transaction) => {
-          const userDoc = await transaction.get(userDocRef);
-          if (!userDoc.exists) return;
 
-          const bestScores = userDoc.data().bestScores || {};
+        // YENİ: Lider tablosu döküman ID'sini belirliyoruz
+        const leaderboardDocId = `${examId}_${studentId}`;
+
+        // YENİ: 3 lider tablosu için döküman referansları
+        const turkeyLbRef = db.collection("leaderboards_turkey").doc(leaderboardDocId);
+        const provinceLbRef = db.collection("leaderboards_province").doc(leaderboardDocId);
+        const districtLbRef = db.collection("leaderboards_district").doc(leaderboardDocId);
+
+        return db.runTransaction(async (transaction) => {
+          // Önce öğrencinin profil bilgilerini (isim, şehir, ilçe) al
+          const userDoc = await transaction.get(userDocRef);
+          if (!userDoc.exists) {
+            console.error(`User doc ${studentId} not found.`);
+            return;
+          }
+          const userData = userDoc.data();
+
+          // --- 2a. Kişisel En İyi Skoru (ProfileScreen) Güncelle ---
+          const bestScores = userData.bestScores || {};
           const currentBestNet = bestScores[examType]?.net || -999;
 
           if (newNet > currentBestNet) {
-            console.log(`New record for ${studentId} in ${examType}! Net: ${newNet}`);
+            console.log(`New PERSONAL record for ${studentId} in ${examType}! Net: ${newNet}`);
             const newBestScore = {
               net: newNet, correct: correctCount, incorrect: incorrectCount,
             };
             transaction.update(userDocRef, {[`bestScores.${examType}`]: newBestScore});
+          }
+
+          // --- 2b. Deneme Lider Tablolarını (LeaderboardScreen) Güncelle ---
+
+          // Lider tablosuna yazılacak denormalize veriyi hazırla
+          const leaderboardData = {
+            attemptId: snapshot.id, // Bu denemenin ID'si
+            examId: examId,
+            studentId: studentId,
+            studentName: userData.name || "Bilinmeyen Öğrenci",
+            city: userData.city || null,
+            district: userData.district || null,
+            school: userData.school || null,
+            examType: examType,
+            net: newNet,
+            correct: correctCount,
+            incorrect: incorrectCount,
+            completedAt: admin.firestore.FieldValue.serverTimestamp(),
+          };
+
+          // Lider tablosundaki mevcut en iyi skoru kontrol et (sadece 1 tanesini okumak yeterli)
+          const currentLeaderboardDoc = await transaction.get(turkeyLbRef);
+          const currentLeaderboardNet = currentLeaderboardDoc.data()?.net || -999;
+
+          // Eğer yeni net, bu deneme için lider tablosundaki rekordan iyiyse
+          // (veya ilk defa çözülüyorsa), 3 koleksiyona da yaz.
+          if (newNet > currentLeaderboardNet) {
+            console.log(`New LEADERBOARD record for ${studentId} on exam ${examId}. Net: ${newNet}`);
+            // merge: true, döküman yoksa oluşturur, varsa üzerine yazar.
+            transaction.set(turkeyLbRef, leaderboardData, {merge: true});
+            transaction.set(provinceLbRef, leaderboardData, {merge: true});
+            transaction.set(districtLbRef, leaderboardData, {merge: true});
           }
         });
       } catch (error) {
@@ -197,7 +249,6 @@ exports.updateBestNetScoreOnCreate = functions.firestore
         return null;
       }
     });
-
 
 // =========================================================================
 // FONKSİYON 2: BİR DENEME KAYDI SİLİNDİĞİNDE EN YÜKSEK NETİ YENİDEN HESAPLA

@@ -207,9 +207,8 @@ fun HomeScreen(
                         ProductCard(
                             exam = exam,
                             onClick = {
-                                navController?.navigate(Screen.ExamEntryScreen.createRoute(exam.id))
+                                navController?.navigate(Screen.ExamDetailsScreen.createRoute(exam.id))
                             }
-
                         )
                     }
                 }

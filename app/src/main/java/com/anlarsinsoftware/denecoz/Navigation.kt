@@ -20,7 +20,9 @@ import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherProfileScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherRegisterScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.AnalysisDetailsScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.EditProfileScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.ExamDetailsScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ExamEntryScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.LeaderboardScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ProfileScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ResultsScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.StudentLoginScreen
@@ -34,8 +36,6 @@ sealed class Screen(val route: String) {
     object PublisherLoginScreen : Screen("publisher_login_screen")
     object PublisherRegisterScreen : Screen("publisher_register_screen")
     // Student
-    object LoginScreen : Screen("login_screen")
-    object RegisterScreen : Screen("register_screen")
     object HomeScreen : Screen("home_screen")
     object ProfileScreen : Screen("profile_screen")
     object EditProfileScreen : Screen("edit_profile_screen")
@@ -44,6 +44,16 @@ sealed class Screen(val route: String) {
     object GeneralInfoScreen : Screen("general_info_screen")
     object PublisherProfileScreen : Screen("publisher_profile_screen")
     object EditPublisherProfileScreen : Screen("edit_publisher_profile_screen")
+
+    object ExamDetailsScreen : Screen("exam_details_screen/{examId}") {
+        fun createRoute(examId: String) = "exam_details_screen/$examId"
+    }
+
+    object LeaderboardScreen : Screen("leaderboard_screen?examId={examId}") {
+        fun createRoute(examId: String?): String {
+            return if (examId != null) "leaderboard_screen?examId=$examId" else "leaderboard_screen"
+        }
+    }
 
     object ExamEntryScreen : Screen("exam_entry_screen/{examId}") {
         fun createRoute(examId: String) = "exam_entry_screen/$examId"
@@ -63,9 +73,9 @@ sealed class Screen(val route: String) {
     object PreviewScreen : Screen("preview_screen/{examId}") {
         fun createRoute(examId: String) = "preview_screen/$examId"
     }
-    object AnalysisDetailsScreen : Screen("analysis_details/{examId}/{attemptId}/{topicName}") {
-        fun createRoute(examId: String, attemptId: String, topicName: String) =
-            "analysis_details/$examId/$attemptId/$topicName"
+    object AnalysisDetailsScreen : Screen("analysis_details/{examId}/{attemptId}/{uniqueTopicId}") {
+        fun createRoute(examId: String, attemptId: String, uniqueTopicId: String) =
+            "analysis_details/$examId/$attemptId/$uniqueTopicId"
     }
 }
 
@@ -117,6 +127,27 @@ fun AppNavigation() {
         composable(route = Screen.HomeScreen.route) {
             HomeScreen(navController = navController)
         }
+
+        composable(
+            route = Screen.ExamDetailsScreen.route,
+            arguments = listOf(navArgument("examId") { type = NavType.StringType })
+        ) {
+            ExamDetailsScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.LeaderboardScreen.route,
+            arguments = listOf(
+                navArgument("examId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
+            LeaderboardScreen(navController = navController)
+        }
+
         composable(route = Screen.ProfileScreen.route) {
             ProfileScreen(navController = navController)
         }

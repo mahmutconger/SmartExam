@@ -56,8 +56,7 @@ fun HomeScreen(
         bottomBar = {
             HomeBottomBar(selectedIndex = 0) { index ->
                 when (index) {
-                    // 0: Home, 1: Explore, 2: Settings
-                    // 3. index "Profil" ikonuna karşılık geliyor
+                    1 -> navController?.navigate(Screen.LeaderboardScreen.createRoute(null))
                     3 -> {
                         navController?.navigate(Screen.ProfileScreen.route)
                     }

@@ -159,7 +159,7 @@ fun AppNavigation() {
             arguments = listOf(
                 navArgument("examId") { type = NavType.StringType },
                 navArgument("attemptId") { type = NavType.StringType },
-                navArgument("topicName") { type = NavType.StringType }
+                navArgument("uniqueTopicId") { type = NavType.StringType }
             )
         ) {
             AnalysisDetailsScreen(navController = navController)

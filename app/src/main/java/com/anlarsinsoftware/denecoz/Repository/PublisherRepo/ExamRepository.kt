@@ -7,6 +7,7 @@ import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.PublisherProfile
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
 import com.anlarsinsoftware.denecoz.Model.State.Student.BestNetResult
+import com.anlarsinsoftware.denecoz.Model.State.Student.LeaderboardEntry
 import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
@@ -66,4 +67,12 @@ interface ExamRepository {
     suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>>
     suspend fun getPublishers(): Result<List<PublisherSummary>>
     suspend fun hasUserSolvedExam(studentId: String, examId: String): Result<Boolean>
+    suspend fun getLeaderboard(
+        examId: String,
+        scope: String, // "turkey", "province", "district"
+        city: String? = null,
+        district: String? = null,
+        limit: Long = 50
+    ): Result<List<LeaderboardEntry>>
+    suspend fun getMyLeaderboardEntry(examId: String, studentId: String): Result<LeaderboardEntry?>
 }

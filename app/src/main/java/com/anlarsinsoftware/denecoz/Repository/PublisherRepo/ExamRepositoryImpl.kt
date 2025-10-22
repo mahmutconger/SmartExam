@@ -7,6 +7,7 @@ import com.anlarsinsoftware.denecoz.Model.Publisher.TopicRef
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.BookletStatus
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.PublisherProfile
 import com.anlarsinsoftware.denecoz.Model.State.Publisher.SubjectDef
+import com.anlarsinsoftware.denecoz.Model.State.Student.LeaderboardEntry
 import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
@@ -92,6 +93,57 @@ class ExamRepositoryImpl @Inject constructor(
                 .limit(1) // Sadece 1 kayıt bulmamız yeterli
                 .get().await()
             Result.success(!snapshot.isEmpty) // Kayıt varsa true, yoksa false döner
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getLeaderboard(
+        examId: String, scope: String, city: String?, district: String?, limit: Long
+    ): Result<List<LeaderboardEntry>> {
+        return try {
+            // 1. Doğru koleksiyonu seç
+            val collectionName = when (scope) {
+                "İlçe" -> "leaderboards_district"
+                "İl" -> "leaderboards_province"
+                else -> "leaderboards_turkey"
+            }
+
+            // 2. Temel sorguyu oluştur
+            var query: Query = firestore.collection(collectionName)
+                .whereEqualTo("examId", examId)
+
+            // 3. Kapsama göre filtreleri ekle
+            if (scope == "İl" && city != null) {
+                query = query.whereEqualTo("city", city)
+            }
+            if (scope == "İlçe" && city != null && district != null) {
+                query = query.whereEqualTo("city", city)
+                    .whereEqualTo("district", district)
+            }
+
+            // 4. Sırala, limitle ve çek
+            val snapshot = query
+                .orderBy("net", Query.Direction.DESCENDING)
+                .limit(limit)
+                .get().await()
+
+            val entries = snapshot.toObjects(LeaderboardEntry::class.java)
+            Result.success(entries)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getMyLeaderboardEntry(examId: String, studentId: String): Result<LeaderboardEntry?> {
+        return try {
+            val docId = "${examId}_${studentId}"
+            val snapshot = firestore.collection("leaderboards_turkey").document(docId).get().await()
+            if (snapshot.exists()) {
+                Result.success(snapshot.toObject(LeaderboardEntry::class.java))
+            } else {
+                Result.success(null)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

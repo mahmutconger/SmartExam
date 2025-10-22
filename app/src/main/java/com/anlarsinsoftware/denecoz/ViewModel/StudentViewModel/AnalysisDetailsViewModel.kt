@@ -27,7 +27,7 @@ class AnalysisDetailsViewModel @Inject constructor(
 
     private val examId: String = savedStateHandle.get("examId")!!
     private val attemptId: String = savedStateHandle.get("attemptId")!!
-    private val uniqueTopicId: String = savedStateHandle.get("topicName")!!
+    private val uniqueTopicId: String = savedStateHandle.get("uniqueTopicId")!!
 
     init {
         loadAndFilterTopicDetails()

@@ -9,11 +9,10 @@ const db = admin.firestore();
  * firebase deploy --only functions
  */
 
-/**
- * 'attempts' koleksiyonuna yeni bir kayıt eklendiğinde tetiklenir ve
- * kullanıcının genel konu başarılarını günceller.
- */
-exports.updateUserTopicPerformance = functions.firestore
+// =========================================================================
+// YENİ BİRLEŞTİRİLMİŞ FONKSİYON 1: DENEME OLUŞTURULDUĞUNDA (onCreate)
+// =========================================================================
+exports.onAttemptCreated = functions.firestore
     .document("attempts/{attemptId}")
     .onCreate(async (snapshot) => {
       const attemptData = snapshot.data();
@@ -28,9 +27,17 @@ exports.updateUserTopicPerformance = functions.firestore
         booklet,
         answers,
         alternativeChoice,
+        examType, // Android tarafından bu alanın eklendiğini varsayıyoruz
       } = attemptData;
 
+      // Gerekli veriler yoksa durdur
+      if (!studentId || !examId || !booklet || !examType) {
+        console.error("Attempt data is missing critical fields (studentId, examId, booklet, examType).");
+        return null;
+      }
+
       try {
+        // --- 1. GEREKLİ TÜM VERİLERİ SADECE BİR KEZ ÇEK ---
         const examDocRef = db.collection("exams").doc(examId);
         const correctAnswersPromise = examDocRef
             .collection("booklets").doc(booklet)
@@ -39,213 +46,162 @@ exports.updateUserTopicPerformance = functions.firestore
             .collection("booklets").doc(booklet)
             .collection("topicDistribution").get();
         const examDetailsPromise = examDocRef.get();
+        const userDocRef = db.collection("students").doc(studentId);
+        const userDocPromise = userDocRef.get();
 
-        const [
+        const [ 
           correctAnswersSnapshot,
           topicDistSnapshot,
           examDetailsSnapshot,
+          userDoc,
         ] = await Promise.all([
           correctAnswersPromise,
           topicDistPromise,
           examDetailsPromise,
+          userDocPromise,
         ]);
 
-        const correctAnswers = Object.fromEntries(
-            correctAnswersSnapshot.docs.map((doc) => [
-              doc.id, doc.data().correctAnswer,
-            ]));
-            
-        const topicDistribution = Object.fromEntries(
-            topicDistSnapshot.docs.map((doc) => [
-              doc.id, doc.data(), 
-            ]));
+        if (!examDetailsSnapshot.exists || !userDoc.exists) {
+          console.error(`Exam (${examId}) or User (${studentId}) not found.`);
+          return null;
+        }
 
+        // --- 2. VERİLERİ HAZIRLA ---
+        const correctAnswers = Object.fromEntries(
+            correctAnswersSnapshot.docs.map((doc) => [doc.id, doc.data().correctAnswer])
+        );
+        const topicDistribution = Object.fromEntries(
+            topicDistSnapshot.docs.map((doc) => [doc.id, doc.data()])
+        );
         const examSubjects = examDetailsSnapshot.data().subjects || [];
         const subSubjects = examSubjects
             .map((s) => s.subSubjects)
             .find((ss) => ss !== undefined) || [];
+        const userData = userDoc.data();
 
-        
-        const topicPerformanceDelta = {};
+        // --- 3. ANALİZ MOTORUNU ÇALIŞTIR (HEM GENEL HEM KONU BAZINDA) ---
+        let overallCorrect = 0;
+        let overallIncorrect = 0;
+        const topicPerformanceDelta = {}; // Konu bazında D/Y/B
+        const leaderboardDocId = `${examId}_${studentId}`; // Lider tablosu ID'si
 
-        for (const questionIndex in topicDistribution) {
-          if (Object.prototype.hasOwnProperty.call(
-              topicDistribution, questionIndex)) {
+        for (const questionIndex in answers) {
+          if (!Object.prototype.hasOwnProperty.call(answers, questionIndex)) continue;
 
-            const topicInfo = topicDistribution[questionIndex];
-            const uniqueTopicId = topicInfo?.topicId || `diger_${questionIndex}`;
-            const topicNameForDisplay = topicInfo?.topicName || "Diğer";
-        
+          const studentAnswer = answers[questionIndex];
+          const correctAnswer = correctAnswers[questionIndex];
+          const topicInfo = topicDistribution[questionIndex];
+          const uniqueTopicId = topicInfo?.topicId || `diger_${questionIndex}`;
+          const topicNameForDisplay = topicInfo?.topicName || "Diğer";
 
-            const studentAnswer = answers[questionIndex];
-            const correctAnswer = correctAnswers[questionIndex];
+          // Seçmeli ders kontrolü
+          const subjectIdOfQuestion = uniqueTopicId.substring(0, uniqueTopicId.lastIndexOf("_"));
+          const subjectInfo = subSubjects.find((ss) => ss.subjectId === subjectIdOfQuestion);
+          if (subjectInfo?.isAlternative !== undefined && subjectInfo.subjectId !== alternativeChoice) {
+            continue; // Bu soruyu analize katma
+          }
 
-            const subjectIdOfQuestion = uniqueTopicId.substring(0, uniqueTopicId.lastIndexOf("_"));
-            const subjectInfo = subSubjects.find((ss) => ss.subjectId === subjectIdOfQuestion);
+          // Konu Performansı (topicPerformanceDelta) için D/Y/B say
+          if (!topicPerformanceDelta[uniqueTopicId]) {
+            topicPerformanceDelta[uniqueTopicId] = {
+              name: topicNameForDisplay, correct: 0, incorrect: 0, empty: 0,
+            };
+          }
 
-            if (
-              subjectInfo?.isAlternative !== undefined &&
-              subjectInfo.subjectId !== alternativeChoice
-            ) {
-              continue;
-            }
-            if (!topicPerformanceDelta[uniqueTopicId]) {
-              topicPerformanceDelta[uniqueTopicId] = {
-                correct: 0, incorrect: 0, empty: 0, name: topicNameForDisplay,
-              };
-            }
-
-            if (studentAnswer === "-" || !studentAnswer) {
-              topicPerformanceDelta[uniqueTopicId].empty += 1;
-            } else if (studentAnswer === correctAnswer) {
-              topicPerformanceDelta[uniqueTopicId].correct += 1;
-            } else {
-              topicPerformanceDelta[uniqueTopicId].incorrect += 1;
-            }
+          // Genel Net (overall) ve Konu (delta) için D/Y/B say
+          if (studentAnswer === "-" || !studentAnswer) {
+            topicPerformanceDelta[uniqueTopicId].empty += 1;
+          } else if (studentAnswer === correctAnswer) {
+            overallCorrect++; // Genel doğruyu artır
+            topicPerformanceDelta[uniqueTopicId].correct += 1;
+          } else {
+            overallIncorrect++; // Genel yanlışı artır
+            topicPerformanceDelta[uniqueTopicId].incorrect += 1;
           }
         }
+        const overallNet = overallCorrect - (overallIncorrect / 4.0);
 
-        const batch = db.batch();
+        // --- 4. TEK BİR TRANSACTION İLE TÜM VERİTABANINI GÜNCELLE ---
+        const batch = db.batch(); // Batch işlemi kullanmak, birden fazla yazma için daha iyidir.
 
+        // GÖREV A: Kişisel En İyi Skoru (ProfileScreen) Güncelle
+        const bestScores = userData.bestScores || {};
+        const currentBestNet = bestScores[examType]?.net || -999;
+        if (overallNet > currentBestNet) {
+          const newBestScore = {
+            net: overallNet, correct: overallCorrect, incorrect: overallIncorrect,
+          };
+          batch.update(userDocRef, {[`bestScores.${examType}`]: newBestScore});
+        }
+
+        // GÖREV B: Konu Performansını (Analiz Raporu) Güncelle
         for (const uniqueTopicId in topicPerformanceDelta) {
-          if (Object.prototype.hasOwnProperty.call(
-              topicPerformanceDelta, uniqueTopicId)) {
+          if (Object.prototype.hasOwnProperty.call(topicPerformanceDelta, uniqueTopicId)) {
             const delta = topicPerformanceDelta[uniqueTopicId];
             const docId = `${studentId}_${uniqueTopicId}`;
-            const performanceDocRef =
-              db.collection("userTopicPerformance").doc(docId);
-
+            const performanceDocRef = db.collection("userTopicPerformance").doc(docId);
             batch.set(performanceDocRef, {
               studentId: studentId,
-              topicId: uniqueTopicId, 
-              topicName: delta.name, 
+              topicId: uniqueTopicId,
+              topicName: delta.name,
               totalCorrect: admin.firestore.FieldValue.increment(delta.correct),
-              totalIncorrect:
-                admin.firestore.FieldValue.increment(delta.incorrect),
+              totalIncorrect: admin.firestore.FieldValue.increment(delta.incorrect),
               totalEmpty: admin.firestore.FieldValue.increment(delta.empty),
             }, {merge: true});
           }
         }
 
-        await batch.commit();
-        console.log(`Performance updated for student ${studentId}.`);
-        return null;
-      } catch (error) {
-        console.error("Error updating topic performance:", error);
-        return null;
-      }
-    });
-
-// =========================================================================
-// FONKSİYON 1: YENİ BİR DENEME KAYDI OLUŞTURULDUĞUNDA
-// KİŞİSEL REKORU VE TÜM LİDER TABLOLARINI GÜNCELLE
-// =========================================================================
-exports.updateBestNetScoreOnCreate = functions.firestore
-    .document("attempts/{attemptId}")
-    .onCreate(async (snapshot) => {
-      const attemptData = snapshot.data();
-      if (!attemptData) return null;
-
-      // attempt dökümanından 'examType'ı da alıyoruz
-      const {studentId, examId, booklet, answers, examType} = attemptData;
-
-      // Gerekli veriler yoksa fonksiyonu durdur
-      if (!studentId || !examId || !booklet || !examType) {
-        console.error("Attempt data is missing critical fields.");
-        return null;
-      }
-
-      try {
-        // --- 1. Yeni denemenin netini hesapla ---
-        const examDocRef = db.collection("exams").doc(examId);
-        const correctAnswersPromise = examDocRef
-            .collection("booklets").doc(booklet)
-            .collection("answerKey").get();
-
-        // Artık examDetails'i çekmemize gerek yok, examType'ı attempt'ten aldık
-        const correctAnswersSnapshot = await correctAnswersPromise;
-
-        const correctAnswers = Object.fromEntries(
-            correctAnswersSnapshot.docs.map((doc) => [doc.id, doc.data().correctAnswer])
-        );
-
-        let correctCount = 0;
-        let incorrectCount = 0;
-        for (const qIndex in answers) {
-          if (Object.prototype.hasOwnProperty.call(answers, qIndex)) {
-            if (answers[qIndex] === correctAnswers[qIndex]) correctCount++;
-            else if (answers[qIndex] !== "-") incorrectCount++;
-          }
-        }
-        const newNet = correctCount - (incorrectCount / 4.0);
-        console.log(`New attempt calculated. Student: ${studentId}, Exam: ${examId}, Type: ${examType}, Net: ${newNet}`);
-
-        // --- 2. Transaction ile TÜM rekorları güvenli bir şekilde güncelle ---
-        const userDocRef = db.collection("students").doc(studentId);
-
-        // YENİ: Lider tablosu döküman ID'sini belirliyoruz
-        const leaderboardDocId = `${examId}_${studentId}`;
-
-        // YENİ: 3 lider tablosu için döküman referansları
+        // GÖREV C: Lider Tablolarını (LeaderboardScreen) Güncelle
+        const leaderboardData = {
+          attemptId: snapshot.id,
+          examId: examId,
+          studentId: studentId,
+          studentName: userData.name || "Öğrenci Adı",
+          city: userData.city || null,
+          district: userData.district || null,
+          school: userData.school || null,
+          examType: examType,
+          net: overallNet,
+          correct: overallCorrect,
+          incorrect: overallIncorrect,
+          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        // Lider tablosu dökümanını (sadece en iyi skoru tutan) güncelle
+        // Not: Burada 'set' kullanmak, o deneme için sadece en iyi skoru tutma mantığını uygular
+        // (Eski kodu transaction'a çevirmek)
         const turkeyLbRef = db.collection("leaderboards_turkey").doc(leaderboardDocId);
         const provinceLbRef = db.collection("leaderboards_province").doc(leaderboardDocId);
         const districtLbRef = db.collection("leaderboards_district").doc(leaderboardDocId);
 
-        return db.runTransaction(async (transaction) => {
-          // Önce öğrencinin profil bilgilerini (isim, şehir, ilçe) al
-          const userDoc = await transaction.get(userDocRef);
-          if (!userDoc.exists) {
-            console.error(`User doc ${studentId} not found.`);
-            return;
-          }
-          const userData = userDoc.data();
+        const currentLeaderboardDoc = await turkeyLbRef.get(); // Transaction içinde get yapamayız, batch'e çevirdik
+        const currentLeaderboardNet = currentLeaderboardDoc.data()?.net || -999;
 
-          // --- 2a. Kişisel En İyi Skoru (ProfileScreen) Güncelle ---
-          const bestScores = userData.bestScores || {};
-          const currentBestNet = bestScores[examType]?.net || -999;
+        if (overallNet > currentLeaderboardNet) {
+          batch.set(turkeyLbRef, leaderboardData, {merge: true});
+          batch.set(provinceLbRef, leaderboardData, {merge: true});
+          batch.set(districtLbRef, leaderboardData, {merge: true});
+        }
 
-          if (newNet > currentBestNet) {
-            console.log(`New PERSONAL record for ${studentId} in ${examType}! Net: ${newNet}`);
-            const newBestScore = {
-              net: newNet, correct: correctCount, incorrect: incorrectCount,
-            };
-            transaction.update(userDocRef, {[`bestScores.${examType}`]: newBestScore});
-          }
+        // GÖREV D: Gelişim Grafiği Verisini (DevelopmentScreen) Yaz
+        const summaryDocRef = db.collection("attemptSummaries").doc(snapshot.id);
+        const summaryData = {
+          studentId: studentId,
+          examId: examId,
+          examType: examType,
+          net: overallNet,
+          correct: overallCorrect,
+          incorrect: overallIncorrect,
+          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        batch.set(summaryDocRef, summaryData);
+        
+        // Tüm işlemleri tek seferde onayla
+        await batch.commit();
 
-          // --- 2b. Deneme Lider Tablolarını (LeaderboardScreen) Güncelle ---
-
-          // Lider tablosuna yazılacak denormalize veriyi hazırla
-          const leaderboardData = {
-            attemptId: snapshot.id, // Bu denemenin ID'si
-            examId: examId,
-            studentId: studentId,
-            studentName: userData.name || "Bilinmeyen Öğrenci",
-            city: userData.city || null,
-            district: userData.district || null,
-            school: userData.school || null,
-            examType: examType,
-            net: newNet,
-            correct: correctCount,
-            incorrect: incorrectCount,
-            completedAt: admin.firestore.FieldValue.serverTimestamp(),
-          };
-
-          // Lider tablosundaki mevcut en iyi skoru kontrol et (sadece 1 tanesini okumak yeterli)
-          const currentLeaderboardDoc = await transaction.get(turkeyLbRef);
-          const currentLeaderboardNet = currentLeaderboardDoc.data()?.net || -999;
-
-          // Eğer yeni net, bu deneme için lider tablosundaki rekordan iyiyse
-          // (veya ilk defa çözülüyorsa), 3 koleksiyona da yaz.
-          if (newNet > currentLeaderboardNet) {
-            console.log(`New LEADERBOARD record for ${studentId} on exam ${examId}. Net: ${newNet}`);
-            // merge: true, döküman yoksa oluşturur, varsa üzerine yazar.
-            transaction.set(turkeyLbRef, leaderboardData, {merge: true});
-            transaction.set(provinceLbRef, leaderboardData, {merge: true});
-            transaction.set(districtLbRef, leaderboardData, {merge: true});
-          }
-        });
+        console.log(`All analytics updated successfully for attempt ${snapshot.id}.`);
+        return null;
       } catch (error) {
-        console.error("Error in updateBestNetScoreOnCreate:", error);
+        console.error(`Error in onAttemptCreated for attempt ${snapshot.id}:`, error);
         return null;
       }
     });

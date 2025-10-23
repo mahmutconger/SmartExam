@@ -12,6 +12,7 @@ import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
 import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
+import com.anlarsinsoftware.denecoz.Model.Student.NetScoreHistoryPoint
 import com.anlarsinsoftware.denecoz.Model.Student.PublisherSummary
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
@@ -75,4 +76,9 @@ interface ExamRepository {
         limit: Long = 50
     ): Result<List<LeaderboardEntry>>
     suspend fun getMyLeaderboardEntry(examId: String, studentId: String): Result<LeaderboardEntry?>
+    suspend fun getNetScoreHistory(
+        studentId: String,
+        examType: String,
+        startDate: Date
+    ): Result<List<NetScoreHistoryPoint>>
 }

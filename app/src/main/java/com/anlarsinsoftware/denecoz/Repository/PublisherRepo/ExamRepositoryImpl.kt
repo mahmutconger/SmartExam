@@ -12,6 +12,7 @@ import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.Model.Student.AnalysisData
 import com.anlarsinsoftware.denecoz.Model.Student.HistoricalTopicPerformance
+import com.anlarsinsoftware.denecoz.Model.Student.NetScoreHistoryPoint
 import com.anlarsinsoftware.denecoz.Model.Student.PublisherSummary
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -24,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import java.util.Date
 import javax.inject.Inject
 
 class ExamRepositoryImpl @Inject constructor(
@@ -147,6 +149,33 @@ class ExamRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override suspend fun getNetScoreHistory(
+        studentId: String,
+        examType: String,
+        startDate: Date
+    ): Result<List<NetScoreHistoryPoint>> {
+        return try {
+        val snapshot = firestore.collection("attemptSummaries")
+            .whereEqualTo("studentId", studentId)
+            .whereEqualTo("examType", examType)
+            .whereGreaterThanOrEqualTo("completedAt", Timestamp(startDate))
+            .orderBy("completedAt", Query.Direction.ASCENDING)
+            .get().await()
+
+        val history = snapshot.documents.mapNotNull { doc ->
+            doc.getTimestamp("completedAt")?.toDate()?.let { date ->
+                NetScoreHistoryPoint(date = date, net = doc.getDouble("net") ?: 0.0)
+            }
+        }
+        Result.success(history)
+    } catch (e: Exception) {
+            Log.e("REPO_DEBUG", "getNetScoreHistory HATA VERDİ: ${e.message}", e)
+            if (e.message != null && e.message!!.contains("FAILED_PRECONDITION")) {
+                Log.e("REPO_DEBUG", "İNDEKS EKSİK! Lütfen Firestore'un hata mesajındaki linki kullanarak 'attemptSummaries' koleksiyonu için (studentId, examType, completedAt) üzerine bir kompozit indeks oluşturun.")
+            }
+            Result.failure(e) }
     }
 
     override suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>> {

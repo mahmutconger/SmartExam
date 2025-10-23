@@ -81,4 +81,5 @@ interface ExamRepository {
         examType: String,
         startDate: Date
     ): Result<List<NetScoreHistoryPoint>>
+    suspend fun getHistoricalTopicPerformance(studentId: String): Result<List<HistoricalTopicPerformance>>
 }

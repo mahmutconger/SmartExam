@@ -178,6 +178,19 @@ class ExamRepositoryImpl @Inject constructor(
             Result.failure(e) }
     }
 
+    override suspend fun getHistoricalTopicPerformance(studentId: String): Result<List<HistoricalTopicPerformance>> {
+        return try {
+            val snapshot = firestore.collection("userTopicPerformance")
+                .whereEqualTo("studentId", studentId)
+                .get().await()
+
+            val performanceList = snapshot.toObjects(HistoricalTopicPerformance::class.java)
+            Result.success(performanceList)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getPastAttempts(studentId: String): Result<List<PastAttemptSummary>> {
         return try {
             Log.d("PROFILE_DEBUG", "getPastAttempts fonksiyonu çalıştı. Aranan studentId: $studentId")
@@ -411,7 +424,8 @@ class ExamRepositoryImpl @Inject constructor(
     }
 
 
-    override suspend fun getHistoricalTopicPerformance(studentId: String, uniqueTopicId: String): Result<HistoricalTopicPerformance> {        return try {
+    override suspend fun getHistoricalTopicPerformance(studentId: String, uniqueTopicId: String): Result<HistoricalTopicPerformance> {
+        return try {
             val docId = "${studentId}_${uniqueTopicId}"
             val docSnapshot = firestore.collection("userTopicPerformance").document(docId).get().await()
 
@@ -419,7 +433,7 @@ class ExamRepositoryImpl @Inject constructor(
                 val performance = docSnapshot.toObject(HistoricalTopicPerformance::class.java)!!
                 Result.success(performance)
             } else {
-                Result.success(HistoricalTopicPerformance(0, 0, 0))
+                Result.success(HistoricalTopicPerformance(totalCorrect = 0, totalIncorrect =  0, totalEmpty =  0))
             }
         } catch (e: Exception) {
             Result.failure(e)

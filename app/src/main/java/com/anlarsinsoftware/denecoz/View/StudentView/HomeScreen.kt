@@ -57,6 +57,9 @@ fun HomeScreen(
             HomeBottomBar(selectedIndex = 0) { index ->
                 when (index) {
                     1 -> navController?.navigate(Screen.LeaderboardScreen.createRoute(null))
+                    2-> {
+                        navController?.navigate(Screen.DevelopmentScreen.route)
+                    }
                     3 -> {
                         navController?.navigate(Screen.ProfileScreen.route)
                     }

@@ -19,9 +19,11 @@ import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherLoginScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherProfileScreen
 import com.anlarsinsoftware.denecoz.View.PublisherView.PublisherRegisterScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.AnalysisDetailsScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.DevelopmentScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.EditProfileScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ExamDetailsScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ExamEntryScreen
+import com.anlarsinsoftware.denecoz.View.StudentView.HistoricalReportScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.LeaderboardScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ProfileScreen
 import com.anlarsinsoftware.denecoz.View.StudentView.ResultsScreen
@@ -47,6 +49,11 @@ sealed class Screen(val route: String) {
 
     object ExamDetailsScreen : Screen("exam_details_screen/{examId}") {
         fun createRoute(examId: String) = "exam_details_screen/$examId"
+    }
+
+    object DevelopmentScreen : Screen("development_screen")
+    object HistoricalReportScreen : Screen("historical_report_screen/{examType}") {
+        fun createRoute(examType: String) = "historical_report_screen/$examType"
     }
 
     object LeaderboardScreen : Screen("leaderboard_screen?examId={examId}") {
@@ -133,6 +140,19 @@ fun AppNavigation() {
             arguments = listOf(navArgument("examId") { type = NavType.StringType })
         ) {
             ExamDetailsScreen(navController = navController)
+        }
+
+        composable(route = Screen.DevelopmentScreen.route) {
+            DevelopmentScreen(navController=navController)
+        }
+
+        composable(
+            route = Screen.HistoricalReportScreen.route,
+            arguments = listOf(
+                navArgument("examType") { type = NavType.StringType }
+            )
+        ) {
+            HistoricalReportScreen(navController = navController)
         }
 
         composable(

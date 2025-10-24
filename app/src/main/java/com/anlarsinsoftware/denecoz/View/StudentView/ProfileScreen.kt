@@ -1,7 +1,5 @@
 package com.anlarsinsoftware.denecoz.View.StudentView
 
-import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,8 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -29,12 +31,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil.compose.AsyncImage
 import com.anlarsinsoftware.denecoz.Model.State.Student.BestNetResult
 import com.anlarsinsoftware.denecoz.Model.State.Student.PastAttemptSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.View.Common.AnimatedBottomBar
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,8 +48,12 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    Log.d("PROFILE_DEBUG", "ProfileScreen yeniden çizildi. State'deki deneme sayısı: ${uiState.pastAttempts.size}, Yükleniyor mu: ${uiState.isLoading}")
-
+    val bottomItems = listOf(
+        "Ana Sayfa" to Icons.Default.Home,
+        "Sıralama" to Icons.Default.BarChart,
+        "Gelişim" to Icons.AutoMirrored.Filled.TrendingUp,
+        "Profil" to Icons.Default.Person
+    )
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -61,7 +69,27 @@ fun ProfileScreen(
                     }
                 }
             )
+        },bottomBar = {
+            AnimatedBottomBar(
+                items = bottomItems,
+                selectedIndex = 3,
+                onItemSelected = { index ->
+                    if (index == 3) return@AnimatedBottomBar
+
+                    val route = when (index) {
+                        0 -> Screen.HomeScreen.route
+                        1 -> Screen.LeaderboardScreen.createRoute(null)
+                        2 -> Screen.DevelopmentScreen.route
+                        else -> Screen.ProfileScreen.route
+                    }
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
+
     ) { padding ->
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
@@ -71,7 +99,6 @@ fun ProfileScreen(
                 contentPadding = PaddingValues(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 1. Profil Başlığı
                 item {
                     ProfileHeader(
                         userProfile = uiState.userProfile,

@@ -5,6 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,11 +19,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.anlarsinsoftware.denecoz.Model.State.Student.DevelopmentEvent
 import com.anlarsinsoftware.denecoz.Model.State.Student.DevelopmentNavigationEvent
 import com.anlarsinsoftware.denecoz.Model.State.Student.TimeFilter
 import com.anlarsinsoftware.denecoz.Model.Student.NetScoreHistoryPoint
 import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.View.Common.AnimatedBottomBar
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.DevelopmentViewModel
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
@@ -41,6 +48,13 @@ fun DevelopmentScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    val bottomItems = listOf(
+        "Ana Sayfa" to Icons.Default.Home,
+        "Sıralama" to Icons.Default.BarChart,
+        "Gelişim" to Icons.AutoMirrored.Filled.TrendingUp,
+        "Profil" to Icons.Default.Person
+    )
+
     // Navigasyon olaylarını dinle
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
@@ -62,8 +76,26 @@ fun DevelopmentScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(title = { Text("Gelişim Grafiği") })
+        }, bottomBar = {
+            AnimatedBottomBar(
+                items = bottomItems,
+                selectedIndex = 3, // Bu ekran HER ZAMAN 3. index'tir
+                onItemSelected = { index ->
+                    if (index == 2) return@AnimatedBottomBar // Zaten buradayız
+
+                    val route = when (index) {
+                        0 -> Screen.HomeScreen.route
+                        1 -> Screen.LeaderboardScreen.createRoute(null)
+                        3 -> Screen.ProfileScreen.route
+                        else -> Screen.ProfileScreen.route
+                    }
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
-        // TODO: BottomNavBar'ı buraya da ekle
     ) { padding ->
         LazyColumn(
             modifier = Modifier

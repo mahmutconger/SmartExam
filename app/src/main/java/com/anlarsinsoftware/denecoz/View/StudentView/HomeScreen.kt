@@ -26,11 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil.compose.AsyncImage
 import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.Student.PublisherSummary
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.View.Common.AnimatedBottomBar
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.HomeViewModel
 
 
@@ -48,23 +50,36 @@ fun HomeScreen(
     var query by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
 
+    val bottomItems = listOf(
+        "Ana Sayfa" to Icons.Default.Home,
+        "Sıralama" to Icons.Default.BarChart,
+        "Gelişim" to Icons.Default.TrendingUp,
+        "Profil" to Icons.Default.Person
+    )
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .background(screenBg),
         bottomBar = {
-            HomeBottomBar(selectedIndex = 0) { index ->
-                when (index) {
-                    1 -> navController?.navigate(Screen.LeaderboardScreen.createRoute(null))
-                    2-> {
-                        navController?.navigate(Screen.DevelopmentScreen.route)
+            AnimatedBottomBar(
+                items = bottomItems,
+                selectedIndex = 0,
+                onItemSelected = { index ->
+                    if (index == 0) return@AnimatedBottomBar
+
+                    val route = when (index) {
+                        1 -> Screen.LeaderboardScreen.createRoute(null)
+                        2 -> Screen.DevelopmentScreen.route
+                        3 -> Screen.ProfileScreen.route
+                        else -> Screen.HomeScreen.route
                     }
-                    3 -> {
-                        navController?.navigate(Screen.ProfileScreen.route)
+                    navController?.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
                     }
                 }
-            }
+            )
         },
         containerColor = screenBg
     ) { paddingValues ->
@@ -370,54 +385,6 @@ private fun ProductCard(exam: PublishedExamSummary, onClick: () -> Unit) {
                             tint = Color.White
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeBottomBar(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
-    val items = listOf(
-        Pair(R.string.bottom_home, Icons.Default.Home),
-        Pair(R.string.bottom_explore, Icons.Default.ShoppingCart),
-        Pair(R.string.bottom_settings, Icons.Default.Settings),
-        Pair(R.string.bottom_profile, Icons.Default.Person)
-    )
-
-    Surface(
-        tonalElevation = 4.dp,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEachIndexed { index, pair ->
-                val label = stringResource(id = pair.first)
-                val icon = pair.second
-                val activeColor = colorResource(id = R.color.primaryBlue)
-                val inactive = Color.Gray
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clickable { onItemSelected(index) }
-                        .padding(horizontal = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = if (index == selectedIndex) activeColor else inactive
-                    )
-                    Text(
-                        text = label,
-                        fontSize = 11.sp,
-                        color = if (index == selectedIndex) activeColor else inactive
-                    )
                 }
             }
         }

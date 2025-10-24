@@ -8,8 +8,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.anlarsinsoftware.denecoz.Model.State.Student.LeaderboardEvent
+import com.anlarsinsoftware.denecoz.Screen
+import com.anlarsinsoftware.denecoz.View.Common.AnimatedBottomBar
 import com.anlarsinsoftware.denecoz.View.Common.LeaderboardPlaceCard
 import com.anlarsinsoftware.denecoz.View.Common.LeaderboardRow
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.LeaderboardViewModel
@@ -31,6 +35,13 @@ fun LeaderboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val bottomItems = listOf(
+        "Ana Sayfa" to Icons.Default.Home,
+        "Sıralama" to Icons.Default.BarChart,
+        "Gelişim" to Icons.AutoMirrored.Filled.TrendingUp,
+        "Profil" to Icons.Default.Person
+    )
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -41,8 +52,27 @@ fun LeaderboardScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            AnimatedBottomBar(
+                items = bottomItems,
+                selectedIndex = 3, // Bu ekran HER ZAMAN 3. index'tir
+                onItemSelected = { index ->
+                    if (index == 1) return@AnimatedBottomBar // Zaten buradayız
+
+                    val route = when (index) {
+                        0 -> Screen.HomeScreen.route
+                        2 -> Screen.DevelopmentScreen.route
+                        3 -> Screen.ProfileScreen.route
+                        else -> Screen.ProfileScreen.route
+                    }
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
-        // TODO: BottomNavBar'ı buraya da ekle (NavHost içinde bu ekranın BottomBar ile sarılması daha iyi)
     ) { padding ->
         Column(
             modifier = Modifier

@@ -1,5 +1,6 @@
 package com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel
 
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -45,31 +46,42 @@ class HistoricalReportViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            Log.d("RAPOR_DEBUG", "[ViewModel] loadHistoricalReport başlatıldı. İstenen examType: $examType")
             _uiState.update { it.copy(isLoading = true, examType = examType) }
 
-            // 1. O sınav türünün (TYT) DERS/KONU yapısını çek
             val curriculumDeferred = async { examRepository.getCurriculum(examType) }
-            // 2. Öğrencinin TÜM konu performans verilerini çek
             val performanceDeferred = async { examRepository.getHistoricalTopicPerformance(studentId) }
 
             val curriculumResult = curriculumDeferred.await()
             val performanceResult = performanceDeferred.await()
 
-            // Hata durumlarını kontrol et
             if (curriculumResult.isFailure || performanceResult.isFailure) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Rapor verileri çekilemedi.") }
                 return@launch
             }
 
+            val performanceList = performanceResult.getOrThrow()
             val curriculum = curriculumResult.getOrThrow()
-            val performanceMap = performanceResult.getOrThrow()
-                .associateBy { it.topicId }
 
-            val finalReport = curriculum.map { subjectDef ->
+            // performanceMap'in anahtarları GLOBAL ID'lerdir (örn: "biyoloji_biyoloji_bitki_biyolojisi")
+            val performanceMap = performanceList.associateBy { it.topicId }
 
-                val topicReports = subjectDef.topics.map { topicRef ->
+            Log.d("RAPOR_DEBUG", "[ViewModel] Ham veriler alındı. Ders sayısı: ${curriculum.size}, Konu performans kaydı: ${performanceList.size}")
+            if (performanceList.isEmpty()) {
+                Log.w("RAPOR_DEBUG", "[ViewModel] UYARI: Konu performans verisi boş geldi. Cloud Function'ın çalıştığından emin ol.")
+            }
 
-                    val performance = performanceMap[topicRef.id]
+            val finalReport = curriculum.map { subjectDef -> // subjectDef.id = "biyoloji"
+                val topicReports = subjectDef.topics.map { topicRef -> // topicRef.id = "biyoloji_bitki_biyolojisi"
+
+                    // --- İŞTE DÜZELTME BURADA ---
+                    // "biyoloji" ve "biyoloji_bitki_biyolojisi"ni birleştirerek
+                    // Cloud Function'ın yazdığı doğru GLOBAL ID'yi oluşturuyoruz.
+                    val uniqueKey = "${subjectDef.id}_${topicRef.id}"
+
+                    // Haritadan bu BİRLEŞTİRİLMİŞ (biyoloji_biyoloji_bitki_biyolojisi) anahtarı arıyoruz
+                    val performance = performanceMap[uniqueKey]
+                    // --- DÜZELTME SONU ---
 
                     val correct = performance?.totalCorrect ?: 0
                     val incorrect = performance?.totalIncorrect ?: 0
@@ -80,7 +92,7 @@ class HistoricalReportViewModel @Inject constructor(
                     val (feedbackMsg, feedbackColor) = generateSmartFeedback(rate, total)
 
                     SmartTopicReport(
-                        topicId = topicRef.id,
+                        topicId = uniqueKey, // Navigasyon için de benzersiz ID'yi verelim
                         topicName = topicRef.name,
                         correct = correct,
                         incorrect = incorrect,
@@ -96,6 +108,11 @@ class HistoricalReportViewModel @Inject constructor(
                     subjectName = subjectDef.name,
                     topicReports = topicReports
                 )
+            }
+
+            Log.d("RAPOR_DEBUG", "[ViewModel] Analiz tamamlandı. Ekrana ${finalReport.size} ders raporu gönderiliyor.")
+            if (finalReport.isNotEmpty() && finalReport.first().topicReports.isNotEmpty()) {
+                Log.d("RAPOR_DEBUG", "İlk dersin ilk konusu (Örnek): ${finalReport.first().topicReports.first().topicName} -")
             }
 
             _uiState.update {

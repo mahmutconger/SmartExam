@@ -179,14 +179,17 @@ class ExamRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getHistoricalTopicPerformance(studentId: String): Result<List<HistoricalTopicPerformance>> {
+        Log.d("RAPOR_DEBUG", "[Repository] getHistoricalTopicPerformance çağrıldı. studentId: $studentId") // YENİ LOG
         return try {
             val snapshot = firestore.collection("userTopicPerformance")
                 .whereEqualTo("studentId", studentId)
                 .get().await()
 
             val performanceList = snapshot.toObjects(HistoricalTopicPerformance::class.java)
+            Log.d("RAPOR_DEBUG", "[Repository] getHistoricalTopicPerformance başarılı. Bulunan konu kaydı sayısı: ${performanceList.size}") // YENİ LOG
             Result.success(performanceList)
         } catch (e: Exception) {
+            Log.e("RAPOR_DEBUG", "[Repository] getHistoricalTopicPerformance HATA VERDİ: ${e.message}", e) // YENİ LOG
             Result.failure(e)
         }
     }

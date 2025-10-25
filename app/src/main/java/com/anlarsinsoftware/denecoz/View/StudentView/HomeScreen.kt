@@ -1,13 +1,11 @@
 package com.anlarsinsoftware.denecoz.View.StudentView
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -33,6 +31,7 @@ import com.anlarsinsoftware.denecoz.Model.Student.PublisherSummary
 import com.anlarsinsoftware.denecoz.R
 import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.View.Common.AnimatedBottomBar
+import com.anlarsinsoftware.denecoz.View.Common.HeaderSection
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.HomeViewModel
 
 
@@ -86,98 +85,39 @@ fun HomeScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.Top
+                .padding(paddingValues),
+            verticalArrangement = Arrangement.Top,
+            contentPadding = PaddingValues(0.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // --- Üst Row: profil + selam + menü
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.profile_placeholder),
-                        contentDescription = "Profile",
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(id = R.string.welcome_greeting, uiState.username),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    IconButton(onClick = { /* menu */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = muted
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // --- Search bar
-                OutlinedTextField(
-                    value = uiState.searchQuery,
-                    onValueChange = { viewModel.onQueryChanged(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    placeholder = { Text(text = stringResource(id = R.string.search_placeholder)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
-                        )
+                HeaderSection(
+                    userName = uiState.userProfile?.name ?: "...",
+                    userPhotoUrl = uiState.userProfile?.profileImageUrl ?: "",
+                    query = uiState.searchQuery,
+                    onQueryChanged = { newQuery ->
+                        viewModel.onQueryChanged(newQuery)
                     },
-                    trailingIcon = {
-                        IconButton(onClick = { /* filter */ }) {
-                            Icon(
-                                imageVector = Icons.Filled.Menu,
-                                contentDescription = "Filter"
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(28.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = outline,
-                        unfocusedIndicatorColor = outline,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedLeadingIconColor = outline,
-                        unfocusedLeadingIconColor = muted,
-                        unfocusedPlaceholderColor = muted
-                    )
+                    onNotificationClick = {
+                        // TODO: Bildirimler ekranına git
+                    }
                 )
-
-                Spacer(modifier = Modifier.height(22.dp))
-
-                // --- Yayınevleri başlığı
-                Text(
-                    text = stringResource(id = R.string.discover_publishers),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
 
+            item {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Spacer(modifier = Modifier.height(22.dp))
+                    Text(
+                        text = stringResource(id = R.string.discover_publishers),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
             // --- Publishers carousel (tek item)
             item {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                 ) {
                     items(uiState.publishers, key = { it.id }) { pub ->
                         PublisherItem(pub = pub)
@@ -190,8 +130,10 @@ fun HomeScreen(
             // --- Popüler header
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    //verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = stringResource(id = R.string.popular),
@@ -213,26 +155,32 @@ fun HomeScreen(
 
             if (uiState.exams.isEmpty() && !uiState.isLoading) {
                 item {
-                    Text("Görünüşe göre henüz yayınlanmış bir deneme yok.")
+                    Text("Görünüşe göre henüz yayınlanmış bir deneme yok.",
+                            modifier = Modifier.padding(horizontal = 16.dp))
                 }
             } else {
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.exams) { exam ->
-                        ProductCard(
-                            exam = exam,
-                            onClick = {
-                                navController?.navigate(Screen.ExamDetailsScreen.createRoute(exam.id))
-                            }
-                        )
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        items(uiState.exams) { exam ->
+                            ProductCard(
+                                exam = exam,
+                                onClick = {
+                                    navController?.navigate(
+                                        Screen.ExamDetailsScreen.createRoute(
+                                            exam.id
+                                        )
+                                    )
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
+                }
             }
-        }
             if (uiState.isLoading) {
                 item {
                     Box(
@@ -267,7 +215,9 @@ private fun PublisherItem(pub: PublisherSummary) {
                 model = pub.logoUrl,
                 contentDescription = pub.name,
                 placeholder = painterResource(id = R.drawable.logo_limit),
-                modifier = Modifier.padding(12.dp).fillMaxSize()
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxSize()
             )
         }
     }

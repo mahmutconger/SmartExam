@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.anlarsinsoftware.denecoz.Model.PublishedExamSummary
 import com.anlarsinsoftware.denecoz.Model.State.Student.HomeUiState
+import com.anlarsinsoftware.denecoz.Model.State.Student.UserProfile
+import com.anlarsinsoftware.denecoz.Repository.AuthRepository
 import com.anlarsinsoftware.denecoz.Repository.PublisherRepo.ExamRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val examRepository: ExamRepository,
+    private val authRepository: AuthRepository,
     private val auth: FirebaseAuth // Kullanıcı adını almak için
 ) : ViewModel() {
 
@@ -31,34 +34,42 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun loadInitialData() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, username = auth.currentUser?.displayName ?: "Kullanıcı") }
+        val studentId = auth.currentUser?.uid
+        if (studentId == null) {
+            _uiState.update { it.copy(isLoading = false, errorMessage = "Kullanıcı bulunamadı.") }
+            return
+        }
 
-            // Denemeleri ve yayınevlerini AYNI ANDA (paralel) çek
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true,) }
+
             val examsDeferred = async { examRepository.getPublishedExams() }
             val publishersDeferred = async { examRepository.getPublishers() }
+            val profileDeferred = async { authRepository.getUserProfile(studentId) }
 
             val examsResult = examsDeferred.await()
             val publishersResult = publishersDeferred.await()
+            val profileResult = profileDeferred.await()
 
-            examsResult.onSuccess { exams ->
-                allExams = exams
-                _uiState.update { it.copy(exams = exams) }
-            }.onFailure { exception ->
+            _uiState.update { currentState ->
+                var updatedState = currentState.copy(isLoading = false)
 
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = exception.message)
-                }
+                examsResult.onSuccess { exams ->
+                    allExams = exams
+                    updatedState = updatedState.copy(exams = exams)
+                }.onFailure { e -> updatedState = updatedState.copy(errorMessage = e.message) }
+
+                publishersResult.onSuccess { publishers ->
+                    updatedState = updatedState.copy(publishers = publishers)
+                }.onFailure { e -> updatedState = updatedState.copy(errorMessage = e.message) }
+
+                profileResult.onSuccess { profile ->
+                    updatedState = updatedState.copy(userProfile = profile)
+                }.onFailure { e -> updatedState = updatedState.copy(errorMessage = e.message) }
+
+                updatedState
             }
 
-            publishersResult.onSuccess { publishers ->
-                _uiState.update { it.copy(publishers = publishers) }
-            }.onFailure { exception ->
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = exception.message)
-                }
-            }
-            _uiState.update { it.copy(isLoading = false) }
         }
     }
 

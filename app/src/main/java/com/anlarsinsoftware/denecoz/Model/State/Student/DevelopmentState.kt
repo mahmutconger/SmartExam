@@ -4,11 +4,12 @@ import com.anlarsinsoftware.denecoz.Model.Student.NetScoreHistoryPoint
 import java.util.concurrent.TimeUnit
 
 // Kullanıcının seçebileceği zaman filtrelerini temsil eden bir enum
-enum class TimeFilter(val durationInDays: Long) {
-    ONE_MONTH(30),
-    THREE_MONTHS(90),
-    SIX_MONTHS(180),
-    ONE_YEAR(365)
+enum class TimeFilter(val durationInDays: Long,val filterName : String) {
+    ONE_MONTH(30,"1 Ay"),
+    THREE_MONTHS(90,"3 Ay"),
+    SIX_MONTHS(180,"6 AY"),
+    ONE_YEAR(365,"1 Yıl"),
+    TWO_YEAR(730,"2 Yıl")
 }
 
 // "Gelişim" ekranının anlık durumunu tutar

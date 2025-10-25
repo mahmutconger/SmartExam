@@ -79,9 +79,9 @@ fun DevelopmentScreen(
         }, bottomBar = {
             AnimatedBottomBar(
                 items = bottomItems,
-                selectedIndex = 3, // Bu ekran HER ZAMAN 3. index'tir
+                selectedIndex = 2,
                 onItemSelected = { index ->
-                    if (index == 2) return@AnimatedBottomBar // Zaten buradayız
+                    if (index == 2) return@AnimatedBottomBar
 
                     val route = when (index) {
                         0 -> Screen.HomeScreen.route

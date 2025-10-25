@@ -56,9 +56,9 @@ fun LeaderboardScreen(
         bottomBar = {
             AnimatedBottomBar(
                 items = bottomItems,
-                selectedIndex = 3, // Bu ekran HER ZAMAN 3. index'tir
+                selectedIndex = 1,
                 onItemSelected = { index ->
-                    if (index == 1) return@AnimatedBottomBar // Zaten buradayız
+                    if (index == 1) return@AnimatedBottomBar
 
                     val route = when (index) {
                         0 -> Screen.HomeScreen.route

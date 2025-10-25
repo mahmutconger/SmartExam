@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,13 +15,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.anlarsinsoftware.denecoz.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.anlarsinsoftware.denecoz.Model.State.Student.ExamDetailsEvent
 import com.anlarsinsoftware.denecoz.Model.State.Student.ExamDetailsNavigationEvent
+import com.anlarsinsoftware.denecoz.R.drawable.ic_calendar
 import com.anlarsinsoftware.denecoz.Screen
 import com.anlarsinsoftware.denecoz.ViewModel.StudentViewModel.ExamDetailsViewModel
 import java.time.LocalDate
@@ -149,11 +151,12 @@ private fun GeneralInfoCard(date: String, publisher: String, type: String) {
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
+
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            InfoRow(icon = Icons.Default.DateRange, label = "Basım Tarihi", value = date.toFormattedDate())
-            InfoRow(icon = Icons.Default.Business, label = "Yayınevi", value = publisher)
-            InfoRow(icon = Icons.Default.ListAlt, label = "Deneme Türü", value = type)
-            InfoRow(icon = Icons.Default.Description, label = "İçerik", value = "Tüm Dersler")
+            InfoRow(icon = ic_calendar, label = "Basım Tarihi", value = date.toFormattedDate())
+            InfoRow(icon = R.drawable.ic_publisher, label = "Yayınevi", value = publisher,false)
+            InfoRow(icon = R.drawable.ic_book, label = "Deneme Türü", value = type,false)
+            InfoRow(icon = R.drawable.ic_content, label = "İçerik", value = "Tüm Dersler")
         }
     }
 }
@@ -165,22 +168,27 @@ private fun DetailsCard(difficulty: String, isSolved: Boolean, solveCount: Long)
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            InfoRow(icon = Icons.Default.TrendingUp, label = "Zorluk Seviyesi", value = difficulty)
-            InfoRow(icon = Icons.Default.CheckCircle, label = "Çözülme Durumu", value = if (isSolved) "Çözüldü" else "Çözülmedi")
-            InfoRow(icon = Icons.Default.Star, label = "Çözülme Sayısı", value = solveCount.toString())
+            InfoRow(icon = R.drawable.ic_stairs_up, label = "Zorluk Seviyesi", value = difficulty)
+            InfoRow(icon = R.drawable.ic_check_circle, label = "Çözülme Durumu", value = if (isSolved) "Çözüldü" else "Çözülmedi")
+            InfoRow(icon = R.drawable.ic_information, label = "Çözülme Sayısı", value = solveCount.toString())
         }
     }
 }
 
 @Composable
-private fun InfoRow(icon: ImageVector, label: String, value: String) {
+private fun InfoRow(icon: Int, label: String, value: String,isHaveTint: Boolean = true) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
+
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = label,
+            tint = if(isHaveTint) MaterialTheme.colorScheme.primary else Color.Unspecified
+        )
         Spacer(Modifier.width(16.dp))
         Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.weight(1f))
